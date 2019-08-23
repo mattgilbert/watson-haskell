@@ -12,16 +12,15 @@ import TrackerData
 import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 
 main = do
-    -- get a file handle to pass to the data access stuff
-    -- so that we don't get errors for file already open
-    -- stateHandle <- openFile "./state.json" ReadWriteMode
-    --
-    -- this got messy, because file handle is automatically closed (wtf?)
+    -- TODO Reader monad to store this in an environment?
     state <- loadState
     frames <- loadFrames
 
     cmd <- Args.getArgs
     actionResultMsg <- runCommand cmd state frames
+
+    -- TODO: saveEnv instead of commands running against file system
+    -- TODO: commands should only generate new state (maybe mutate since frames could be huge)
 
     print actionResultMsg
 
@@ -29,6 +28,7 @@ main = do
 runCommand :: Args.Command -> Maybe State -> Frames -> IO(String)
 runCommand (Args.Start p) state frames = startTracking state saveState  p
 runCommand Args.Stop state frames = stopTracking state clearState (addFrame frames)
+-- TODO: status, edit, cancel, restart, report
 
 startTracking :: Maybe State -> (State -> IO()) -> ProjectName -> IO (String)
 startTracking (Just s) _ _ = 
