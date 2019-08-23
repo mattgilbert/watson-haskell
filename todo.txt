@@ -1,0 +1,33 @@
+x figure out cabal build
+  x cabal new-repl
+x parse frames with aeson
+  x create model (List of tuple)
+  x create to/fromJSON instances?
+    x can they be automatic? yes
+- parse cmd line args
+  x figure out optparse combinatorial hell
+  x add version back in
+  x move args handling to separate module
+  - execParserPure so we can avoid exceptions
+- track "state" as current active frame
+  x load from file, parse json
+  - provide error feedback for corrupted state file (bad json)
+  - use in determining when to save frame
+  - translate from state->frame structure
+- load state from frames file:
+  x load current active frame, if it exists
+  - store active frame as json? (for editing)
+x implement start with project name, starttime
+x implement stop and save to frames file
+- implement stopAt args paramter
+- implement file handle to avoid competing file access
+
+- implement report
+- figure out UUID problem, using string for now
+  - figure out how to save/load uuid's without hyphens
+  - uuid lib requires hyphens
+- wrap saveState in try for exceptions, then return IO(String) instead of IO ()
+
+- feature: create frames file if it doesn't exist
+- config file support
+- default tags per project in config file
