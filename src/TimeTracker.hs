@@ -23,7 +23,7 @@ type FrameRecord =
     )
 type Frames = [FrameRecord]
 
-data State = NotTracking | State {
+data State = NotTracking | Tracking {
       project :: ProjectName
     , start :: StartTime
     , tags :: Maybe [TagName]

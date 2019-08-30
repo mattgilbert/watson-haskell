@@ -11,7 +11,7 @@ import Data.Time.Clock.POSIX
 import Data.UUID.V1
 import Data.Maybe
 
-import TimeTest
+import TimeUtil
 import TimeTracker
 import TrackerData
 import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
@@ -42,20 +42,23 @@ main = do
 
 runCommand :: Args.Command -> State -> Frames -> IO(CommandResult)
 -- Start
-runCommand (Args.Start p) (State proj _ _) _ = 
+runCommand (Args.Start p) (Tracking proj _ _) _ = 
     pure $ CommandResult False ("project " ++ proj ++ " already started!")
-runCommand (Args.Start p) NotTracking frames = startTracking saveState p
+runCommand (Args.Start p) NotTracking frames =
+    startTracking saveState p
+
 -- Stop
 runCommand (Args.Stop at) NotTracking frames = 
     pure $ CommandResult False "no project started!"
-runCommand (Args.Stop at) state frames = stopTracking at state clearState (addFrame frames)
+runCommand (Args.Stop at) state frames = 
+    stopTracking at state clearState (addFrame frames)
 
 
 startTracking :: (State -> IO()) -> ProjectName -> IO (CommandResult)
 startTracking addState projName = do
     unixTime <- getPOSIXTime
     addState (
-        State 
+        Tracking 
             { project = projName
             , start = round unixTime
             , tags = Nothing }

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module TimeTest where
+module TimeUtil where
 
 import Control.Monad
 import Data.Maybe
