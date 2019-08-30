@@ -5,7 +5,7 @@ import TimeTracker
 
 data Command 
     = Start ProjectName
-    | Stop 
+    | Stop (Maybe String)
 
 data CommandLineArgs = CommandLineArgs Command
 
@@ -36,6 +36,9 @@ startCommandLineArgs =
 
 stopCommand :: Mod CommandFields Command
 stopCommand =
-    command "stop" (info (pure Stop) (progDesc "stop tracking current project"))
+    command "stop" (info stopCommandArgs (progDesc "stop tracking current project"))
 
+stopCommandArgs :: Parser Command
+stopCommandArgs =
+    Stop <$> (optional $ strOption (long "at" <> help "Stop time"))
 

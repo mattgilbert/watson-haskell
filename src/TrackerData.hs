@@ -2,6 +2,8 @@
 
 module TrackerData where
 
+import System.IO
+
 import Data.Maybe
 import Prelude hiding (catch)
 import System.Directory
@@ -10,35 +12,40 @@ import System.IO.Error hiding (catch)
 import GHC.Generics
 import System.Directory
 import Data.Aeson (encode, decode, ToJSON, FromJSON)
-import Data.ByteString.Lazy as BS (writeFile, readFile)
+import qualified Data.ByteString.Lazy.UTF8 as BSL8
+import qualified Data.ByteString.Lazy as BS (writeFile, readFile)
 
 import TimeTracker
 
 framesFileName = "./frames.json"
+stateFileName = "./state.json"
 
 loadFrames :: IO (Frames)
 loadFrames = do
-    framesRaw <- BS.readFile framesFileName
-    -- TODO: create frame file if it doesn't exist
-    let frames = fromMaybe [] $ decode framesRaw 
-    return frames
+    fileExists <- doesFileExist framesFileName
+    if not fileExists then do
+        return []
+    else do
+        framesRaw <- BS.readFile framesFileName
+        -- TODO: create frame file if it doesn't exist
+        let frames = fromMaybe [] $ decode framesRaw
+        return frames
 
 addFrame :: Frames -> FrameRecord -> IO()
 addFrame frames newFrame = do
     let newFrames = frames ++ [newFrame]
     BS.writeFile framesFileName (encode newFrames)
     
-stateFileName = "./state.json"
 
-loadState :: IO (Maybe State)
+loadState :: IO (State)
 loadState = do
     fileExists <- doesFileExist stateFileName
     if not fileExists then do
-        return Nothing
+        return NotTracking
     else do
         stateRaw <- BS.readFile "./state.json"
         let state = decode stateRaw :: Maybe State
-        return state
+        return $ fromMaybe NotTracking state
 
 saveState :: State -> IO ()
 saveState state = do

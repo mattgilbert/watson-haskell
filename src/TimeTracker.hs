@@ -23,9 +23,14 @@ type FrameRecord =
     )
 type Frames = [FrameRecord]
 
-data State = State {
+data State = NotTracking | State {
       project :: ProjectName
     , start :: StartTime
     , tags :: Maybe [TagName]
     } deriving (Generic, Show)
         
+initState :: State
+initState = NotTracking
+
+initFrames :: [FrameRecord]
+initFrames = []

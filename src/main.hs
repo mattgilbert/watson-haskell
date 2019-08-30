@@ -1,39 +1,58 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import System.IO
+import System.Exit
 import Data.List
 import Options.Applicative
+import Data.Time.Clock
+import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
 import Data.UUID.V1
 import Data.Maybe
 
+import TimeTest
 import TimeTracker
 import TrackerData
 import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 
+{--
+TODO:
+- use IO(CommandResult) instead of just IO(String)
+- add --at option for start command as well
+- switch to Reader for env, include state, frames, curTime
+--}
+data CommandResult = CommandResult Bool String
+
 main = do
-    -- TODO Reader monad to store this in an environment?
     state <- loadState
     frames <- loadFrames
-
     cmd <- Args.getArgs
-    actionResultMsg <- runCommand cmd state frames
 
-    -- TODO: saveEnv instead of commands running against file system
-    -- TODO: commands should only generate new state (maybe mutate since frames could be huge)
+    -- using seq to force evaluation, blech
+    CommandResult result msg <- state `seq` frames `seq` runCommand cmd state frames
 
-    print actionResultMsg
+    print msg
+
+    if result then
+        exitSuccess
+    else
+        exitFailure
 
 
-runCommand :: Args.Command -> Maybe State -> Frames -> IO(String)
-runCommand (Args.Start p) state frames = startTracking state saveState  p
-runCommand Args.Stop state frames = stopTracking state clearState (addFrame frames)
--- TODO: status, edit, cancel, restart, report
+runCommand :: Args.Command -> State -> Frames -> IO(CommandResult)
+-- Start
+runCommand (Args.Start p) (State proj _ _) _ = 
+    pure $ CommandResult False ("project " ++ proj ++ " already started!")
+runCommand (Args.Start p) NotTracking frames = startTracking saveState p
+-- Stop
+runCommand (Args.Stop at) NotTracking frames = 
+    pure $ CommandResult False "no project started!"
+runCommand (Args.Stop at) state frames = stopTracking at state clearState (addFrame frames)
 
-startTracking :: Maybe State -> (State -> IO()) -> ProjectName -> IO (String)
-startTracking (Just s) _ _ = 
-    pure $ "project " ++ project s ++ " already started!"
-startTracking Nothing addState projName = do
+
+startTracking :: (State -> IO()) -> ProjectName -> IO (CommandResult)
+startTracking addState projName = do
     unixTime <- getPOSIXTime
     addState (
         State 
@@ -41,19 +60,26 @@ startTracking Nothing addState projName = do
             , start = round unixTime
             , tags = Nothing }
         )
-    return $ "added " ++ projName
+    return $ CommandResult True ("added " ++ projName)
     
 
--- TODO: add optional stopAt param
-stopTracking :: Maybe State -> (IO()) -> (FrameRecord -> IO()) -> IO (String)
-stopTracking Nothing _ _ = pure "no project started!"
-stopTracking (Just state) clearState addFrame = do
-    unixTime <- getPOSIXTime
-    let stopTime = round unixTime
+stopTracking :: Maybe String -> State -> (IO()) -> (FrameRecord -> IO()) -> IO (CommandResult)
+stopTracking stopTimeStr state clearState addFrame = do
+    curTime <- getZonedTime
+    stopTime <- case stopTimeStr of
+                    Nothing -> do
+                        getPOSIXTime
+                    Just s -> do
+                        let zonedStopTime = getTimeWithin24Hrs' curTime s
+                        pure $ utcTimeToPOSIXSeconds $ zonedTimeToUTC zonedStopTime
+
     maybeNewId <- nextUUID
     let newId = fromJust maybeNewId
 
-    addFrame (start state, stopTime, project state, newId, [], stopTime)
+    addFrame (start state, round stopTime, project state, newId, [], round stopTime)
     clearState
-    pure ("stopped tracking " ++ project state)
+
+    let friendlyTime = utcToZonedTime (zonedTimeZone curTime) $ posixSecondsToUTCTime stopTime
+    let resultMsg = ("stopped tracking " ++ project state ++ " at " ++ (show friendlyTime))
+    pure $ CommandResult True resultMsg
 
