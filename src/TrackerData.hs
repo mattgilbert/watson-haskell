@@ -20,6 +20,9 @@ import TimeTracker
 framesFileName = "./frames.json"
 stateFileName = "./state.json"
 
+instance FromJSON State 
+instance ToJSON State 
+
 loadFrames :: IO (Frames)
 loadFrames = do
     fileExists <- doesFileExist framesFileName
@@ -52,10 +55,9 @@ saveState state = do
     BS.writeFile stateFileName (encode state)
 
 clearState :: IO ()
-clearState = removeFile stateFileName `catch` handleExists
-  where handleExists e
-          | isDoesNotExistError e = return ()
-          | otherwise = throwIO e
+clearState = 
+    removeFile stateFileName `catch` handleExists
+      where handleExists e
+              | isDoesNotExistError e = return ()
+              | otherwise = throwIO e
 
-instance FromJSON State 
-instance ToJSON State 

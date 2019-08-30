@@ -18,7 +18,6 @@ import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 
 {--
 TODO:
-- use IO(CommandResult) instead of just IO(String)
 - add --at option for start command as well
 - switch to Reader for env, include state, frames, curTime
 --}
