@@ -4,8 +4,10 @@ import Options.Applicative
 import TimeTracker
 
 data Command 
-    = Start ProjectName (Maybe String)
+    = Status
+    | Start ProjectName (Maybe String)
     | Stop (Maybe String)
+    | Cancel
 
 data CommandLineArgs = CommandLineArgs Command
 
@@ -24,7 +26,11 @@ versionOption = infoOption "0.1" (long "version" <> help "Show version")
 
 commandCommandLineArgs :: Parser CommandLineArgs
 commandCommandLineArgs =
-    CommandLineArgs <$> subparser (startCommand <> stopCommand)
+    CommandLineArgs <$> subparser (statusCommand <> startCommand <> stopCommand <> cancelCommand)
+
+statusCommand :: Mod CommandFields Command
+statusCommand = 
+    command "status" (info (pure Status) (progDesc "status of current project tracking"))
 
 startCommand :: Mod CommandFields Command
 startCommand =
@@ -43,3 +49,6 @@ stopCommandArgs :: Parser Command
 stopCommandArgs =
     Stop <$> (optional $ strOption (long "at" <> help "Stop time"))
 
+cancelCommand :: Mod CommandFields Command
+cancelCommand = 
+    command "cancel" (info (pure Cancel) (progDesc "cancel current project"))

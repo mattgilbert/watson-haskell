@@ -14,6 +14,10 @@ zonedTimeToPOSIX :: ZonedTime -> POSIXTime
 zonedTimeToPOSIX zt =
     utcTimeToPOSIXSeconds $ zonedTimeToUTC zt
 
+posixTimeToZoned :: TimeZone -> POSIXTime -> ZonedTime
+posixTimeToZoned tz pt =
+    utcToZonedTime tz $ posixSecondsToUTCTime pt
+
 getTimeWithin24Hrs :: String -> IO (LocalTime)
 getTimeWithin24Hrs timeStr = do
     curTime <- zonedTimeToLocalTime <$> getZonedTime

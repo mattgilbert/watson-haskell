@@ -18,8 +18,14 @@ import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 
 {--
 TODO:
-- add --at option for start command as well
-- switch to Reader for env, include state, frames, curTime
+- maybe we don't want to use a Reader? still end up with a bunch of "do" functions
+- "status" command:
+   - "Project testing123 started 4 months ago (2019.04.27 21:52:11-0500)"
+- "cancel" command
+- support for tags
+- "tags": list all tags
+FUTURE:
+- abstract so we can have file or sqlite backend
 --}
 data CommandResult = CommandResult Bool String
 
@@ -40,6 +46,15 @@ main = do
 
 
 runCommand :: Args.Command -> State -> Frames -> IO(CommandResult)
+
+-- Status
+runCommand (Args.Status) NotTracking _ =
+    pure $ CommandResult True "not currently tracking a project"
+runCommand (Args.Status) (Tracking proj startTime _) _ = do
+    tz <- getCurrentTimeZone
+    let localStartTime = posixTimeToZoned tz (realToFrac startTime)
+    pure $ CommandResult True ("tracking "++ proj++", started "++(show localStartTime))
+
 -- Start
 runCommand (Args.Start p at) (Tracking proj _ _) _ = 
     pure $ CommandResult False ("project " ++ proj ++ " already started!")
@@ -51,6 +66,13 @@ runCommand (Args.Stop at) NotTracking frames =
     pure $ CommandResult False "no project started!"
 runCommand (Args.Stop at) state frames = 
     stopTracking at state clearState (addFrame frames)
+
+-- Cancel
+runCommand (Args.Cancel) NotTracking frames =
+    pure $ CommandResult False "no project started!"
+runCommand (Args.Cancel) (Tracking proj _ _) frames = do
+    clearState
+    pure $ CommandResult True ("cancelled tracking project" ++ proj)
 
 
 startTracking :: (State -> IO()) -> ProjectName -> Maybe String -> IO (CommandResult)
