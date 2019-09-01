@@ -11,27 +11,44 @@ import Data.UUID.V1
 import Data.Maybe
 import Control.Monad
 
+import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 import TimeUtil
 import TimeTracker
 import TrackerData
-import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
+import qualified Report as Report (generate)
 
 {--
 TODO:
 - maybe we don't want to use a Reader? still end up with a bunch of "do" functions
-- when displaying times, show "X <units> ago", e.g. "4 months ago" or "5 minutes ago"
+? when displaying times, show "X <units> ago", e.g. "4 months ago" or "5 minutes ago"
 - support for tags
-- "tags": list all tags
+- REPORT command
+  - default: last 7 days, all projects, text output
+  - date range
+  - output type: text, json, csv
+  - limit to project name
+  - limit to specific tags
+
 FUTURE:
 - config: choose backend, choose file locations, etc
 - abstract so we can have file or sqlite backend
 --}
 data CommandResult = Success [String] | Failure [String]
 
+data CommandState = CommandState
+    { cmd :: Args.Command
+    , state :: State
+    , frames :: Frames
+    , curTime :: ZonedTime
+    }
+
 main = do
     state <- loadState
     frames <- loadFrames
     cmd <- Args.getArgs
+    curTime <- getZonedTime
+
+    let cmdState = CommandState cmd state frames curTime
 
     -- using seq to force evaluation, blech
     result <- state `seq` frames `seq` runCommand cmd state frames
@@ -43,7 +60,6 @@ main = do
         Failure msgs -> do
             forM_ msgs putStrLn
             exitFailure
-
 
 runCommand :: Args.Command -> State -> Frames -> IO (CommandResult)
 
@@ -81,6 +97,10 @@ runCommand (Args.Projects) _ frames = do
     --else do
         let projNames = nub $ fmap (\(_, _, proj, _, _, _) -> proj) frames
         pure $ Success projNames
+
+-- Report
+runCommand (Args.Report) _ frames = do
+    pure $ Success $ Report.generate frames
 
 startTracking :: (State -> IO()) -> ProjectName -> Maybe String -> IO (CommandResult)
 startTracking addState projName startTimeStr = do

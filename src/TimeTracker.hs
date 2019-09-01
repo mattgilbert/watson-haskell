@@ -34,3 +34,7 @@ initState = NotTracking
 
 initFrames :: [FrameRecord]
 initFrames = []
+
+frameProject :: FrameRecord -> String
+frameProject (_, _, projName, _, _, _) =
+    projName

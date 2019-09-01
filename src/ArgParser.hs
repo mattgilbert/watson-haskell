@@ -10,6 +10,7 @@ data Command
     | Cancel
 
     | Projects -- display list of projects
+    | Report
 
 data CommandLineArgs = CommandLineArgs Command
 
@@ -28,7 +29,14 @@ versionOption = infoOption "0.1" (long "version" <> help "Show version")
 
 commandCommandLineArgs :: Parser CommandLineArgs
 commandCommandLineArgs =
-    CommandLineArgs <$> subparser (statusCommand <> startCommand <> stopCommand <> cancelCommand <> projectsCommand)
+    CommandLineArgs <$> subparser (
+           statusCommand 
+        <> startCommand 
+        <> stopCommand 
+        <> cancelCommand 
+        <> projectsCommand
+        <> reportCommand
+    )
 
 statusCommand :: Mod CommandFields Command
 statusCommand = 
@@ -58,3 +66,7 @@ cancelCommand =
 projectsCommand :: Mod CommandFields Command
 projectsCommand =
     command "projects" (info (pure Projects) (progDesc "list of all projects"))
+
+reportCommand :: Mod CommandFields Command
+reportCommand =
+    command "report" (info (pure Report) (progDesc "generate a project report"))
