@@ -5,9 +5,14 @@ import Control.Monad
 import Data.Maybe
 import Data.Time
 import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import Data.Time.LocalTime
 
 timeFormat = "%H:%M"
+
+zonedTimeToPOSIX :: ZonedTime -> POSIXTime
+zonedTimeToPOSIX zt =
+    utcTimeToPOSIXSeconds $ zonedTimeToUTC zt
 
 getTimeWithin24Hrs :: String -> IO (LocalTime)
 getTimeWithin24Hrs timeStr = do

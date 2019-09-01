@@ -41,10 +41,10 @@ main = do
 
 runCommand :: Args.Command -> State -> Frames -> IO(CommandResult)
 -- Start
-runCommand (Args.Start p) (Tracking proj _ _) _ = 
+runCommand (Args.Start p at) (Tracking proj _ _) _ = 
     pure $ CommandResult False ("project " ++ proj ++ " already started!")
-runCommand (Args.Start p) NotTracking frames =
-    startTracking saveState p
+runCommand (Args.Start p at) NotTracking frames =
+    startTracking saveState p at
 
 -- Stop
 runCommand (Args.Stop at) NotTracking frames = 
@@ -53,13 +53,20 @@ runCommand (Args.Stop at) state frames =
     stopTracking at state clearState (addFrame frames)
 
 
-startTracking :: (State -> IO()) -> ProjectName -> IO (CommandResult)
-startTracking addState projName = do
-    unixTime <- getPOSIXTime
+startTracking :: (State -> IO()) -> ProjectName -> Maybe String -> IO (CommandResult)
+startTracking addState projName startTimeStr = do
+    curTime <- getZonedTime
+
+    let unixTime = zonedTimeToPOSIX curTime
+
+    -- TODO: can probably use bind here somehow and streamline this or turn into composition?
+    let startTime = fmap (getTimeWithin24Hrs' curTime) startTimeStr
+    let startTimePOSIX = (fmap (zonedTimeToPOSIX) startTime) 
+
     addState (
         Tracking 
             { project = projName
-            , start = round unixTime
+            , start = round $ fromMaybe unixTime startTimePOSIX
             , tags = Nothing }
         )
     return $ CommandResult True ("added " ++ projName)

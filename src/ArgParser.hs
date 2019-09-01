@@ -4,7 +4,7 @@ import Options.Applicative
 import TimeTracker
 
 data Command 
-    = Start ProjectName
+    = Start ProjectName (Maybe String)
     | Stop (Maybe String)
 
 data CommandLineArgs = CommandLineArgs Command
@@ -33,6 +33,7 @@ startCommand =
 startCommandLineArgs :: Parser Command
 startCommandLineArgs =
     Start <$> strArgument (metavar "PROJECT-NAME" <> help "name of project")
+          <*> (optional $ strOption (long "at" <> help "Start time"))
 
 stopCommand :: Mod CommandFields Command
 stopCommand =
