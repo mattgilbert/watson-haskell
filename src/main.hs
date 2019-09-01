@@ -51,7 +51,7 @@ main = do
     let cmdState = CommandState cmd state frames curTime
 
     -- using seq to force evaluation, blech
-    result <- state `seq` frames `seq` runCommand cmd state frames
+    result <- state `seq` frames `seq` runCommand cmdState
 
     case result of
         Success msgs -> do
@@ -61,51 +61,49 @@ main = do
             forM_ msgs putStrLn
             exitFailure
 
-runCommand :: Args.Command -> State -> Frames -> IO (CommandResult)
+runCommand :: CommandState -> IO (CommandResult)
 
 -- Status
-runCommand (Args.Status) NotTracking _ =
+runCommand CommandState{cmd=Args.Status, state=NotTracking} =
     pure $ Success ["not currently tracking a project"]
-runCommand (Args.Status) (Tracking proj startTime _) _ = do
-    tz <- getCurrentTimeZone
+runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime _), curTime=curTime} = do
+    let tz = zonedTimeZone curTime
     let localStartTime = posixTimeToZoned tz (realToFrac startTime)
     pure $ Success [("tracking "++ proj++", started "++(show localStartTime))]
 
 -- Start
-runCommand (Args.Start p at) (Tracking proj _ _) _ = 
+runCommand CommandState{cmd=(Args.Start p at), state=(Tracking proj _ _)} = 
     pure $ Failure [("project " ++ proj ++ " already started!")]
-runCommand (Args.Start p at) NotTracking frames =
-    startTracking saveState p at
+runCommand CommandState{cmd=(Args.Start p at), state=NotTracking, curTime=curTime} =
+    startTracking saveState p curTime at
 
 -- Stop
-runCommand (Args.Stop at) NotTracking frames = 
+runCommand CommandState{cmd=(Args.Stop at), state=NotTracking} =
     pure $ Failure ["no project started!"]
-runCommand (Args.Stop at) state frames = 
-    stopTracking at state clearState (addFrame frames)
+runCommand CommandState{cmd=(Args.Stop at), state=state, frames=frames, curTime=curTime} = 
+    stopTracking curTime at state clearState (addFrame frames)
 
 -- Cancel
-runCommand (Args.Cancel) NotTracking frames =
+runCommand CommandState{cmd=Args.Cancel, state=NotTracking} =
     pure $ Failure ["no project started!"]
-runCommand (Args.Cancel) (Tracking proj _ _) frames = do
+runCommand CommandState{cmd=Args.Cancel, state=(Tracking proj _ _)} = do
     clearState
     pure $ Success [("cancelled tracking project" ++ proj)]
 
--- Projects
-runCommand (Args.Projects) _ frames = do
+---- Projects
+runCommand CommandState{cmd=Args.Projects, frames=frames} = do
     --if length frames == 0 then
     --    pure $ Success ["no projects yet!"]
     --else do
         let projNames = nub $ fmap (\(_, _, proj, _, _, _) -> proj) frames
         pure $ Success projNames
 
--- Report
-runCommand (Args.Report) _ frames = do
-    pure $ Success $ Report.generate frames
+---- Report
+runCommand CommandState{cmd=Args.Report, frames=frames, curTime=curTime} = do
+    pure $ Success $ Report.generate curTime frames
 
-startTracking :: (State -> IO()) -> ProjectName -> Maybe String -> IO (CommandResult)
-startTracking addState projName startTimeStr = do
-    curTime <- getZonedTime
-
+startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
+startTracking addState projName curTime startTimeStr = do
     let unixTime = zonedTimeToPOSIX curTime
 
     -- TODO: can probably use bind here somehow and streamline this or turn into composition?
@@ -121,15 +119,9 @@ startTracking addState projName startTimeStr = do
     return $ Success [("added " ++ projName)]
     
 
-stopTracking :: Maybe String -> State -> (IO()) -> (FrameRecord -> IO()) -> IO (CommandResult)
-stopTracking stopTimeStr state clearState addFrame = do
-    curTime <- getZonedTime
-    stopTime <- case stopTimeStr of
-                    Nothing -> do
-                        getPOSIXTime
-                    Just s -> do
-                        let zonedStopTime = getTimeWithin24Hrs' curTime s
-                        pure $ utcTimeToPOSIXSeconds $ zonedTimeToUTC zonedStopTime
+stopTracking :: ZonedTime -> Maybe String -> State -> (IO()) -> (FrameRecord -> IO()) -> IO (CommandResult)
+stopTracking curTime stopTimeStr state clearState addFrame = do
+    let stopTime = zonedTimeToPOSIX $ fromMaybe curTime $ fmap (getTimeWithin24Hrs' curTime) stopTimeStr
 
     maybeNewId <- nextUUID
     let newId = fromJust maybeNewId

@@ -35,17 +35,16 @@ getTimeWithin24Hrs timeStr = do
 
 
 getTimeWithin24Hrs' :: ZonedTime -> String -> ZonedTime
-getTimeWithin24Hrs' curTime timeStr = do
-    --curTime <- zonedTimeToLocalTime <$> getZonedTime
-
-    let userSeconds = (parseTimeOrError True defaultTimeLocale timeFormat timeStr) :: TimeOfDay
-    let curDay = localDay $ zonedTimeToLocalTime curTime
-    let possibleTime = ZonedTime (LocalTime curDay userSeconds) (zonedTimeZone curTime)
-
+getTimeWithin24Hrs' curTime timeStr = 
     if (zonedTimeToUTC possibleTime) > (zonedTimeToUTC curTime) then
         ZonedTime (LocalTime (addDays (negate 1) curDay) userSeconds) (zonedTimeZone curTime)
     else
         possibleTime
+    where
+        userSeconds = (parseTimeOrError True defaultTimeLocale timeFormat timeStr) :: TimeOfDay
+        curDay = localDay $ zonedTimeToLocalTime curTime
+        possibleTime = ZonedTime (LocalTime curDay userSeconds) (zonedTimeZone curTime)
+
 
 
 getTimeWithin24Hrs'' :: String -> IO (Maybe LocalTime)
