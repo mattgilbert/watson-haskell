@@ -15,7 +15,7 @@ import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 import TimeUtil
 import TimeTracker
 import TrackerData
-import qualified Report as Report (generate)
+import qualified Report as Report (ReportCriteria(..), defaultCriteria, generate)
 
 {--
 TODO:
@@ -100,7 +100,7 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
 
 ---- Report
 runCommand CommandState{cmd=Args.Report, frames=frames, curTime=curTime} = do
-    pure $ Success $ Report.generate curTime frames
+    pure $ Success $ Report.generate Report.defaultCriteria curTime frames
 
 startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName curTime startTimeStr = do
