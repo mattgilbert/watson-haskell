@@ -119,7 +119,7 @@ startTracking addState projName curTime startTimeStr = do
     return $ Success [("added " ++ projName)]
     
 
-stopTracking :: ZonedTime -> Maybe String -> State -> (IO()) -> (FrameRecord -> IO()) -> IO (CommandResult)
+stopTracking :: ZonedTime -> Maybe String -> State -> IO() -> (FrameRecord -> IO()) -> IO (CommandResult)
 stopTracking curTime stopTimeStr state clearState addFrame = do
     let stopTime = zonedTimeToPOSIX $ fromMaybe curTime $ fmap (getTimeWithin24Hrs' curTime) stopTimeStr
 

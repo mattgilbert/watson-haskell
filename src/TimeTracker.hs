@@ -4,6 +4,9 @@ module TimeTracker where
 
 import GHC.Generics
 import Data.UUID
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
+import TimeUtil
 
 type StartTime = Int
 type StopTime = Int
@@ -38,3 +41,18 @@ initFrames = []
 frameProject :: FrameRecord -> String
 frameProject (_, _, projName, _, _, _) =
     projName
+
+frameStartTime :: FrameRecord -> POSIXTime
+frameStartTime (startTime, _, _, _, _, _) =
+    realToFrac startTime
+
+frameStopTime :: FrameRecord -> POSIXTime
+frameStopTime (_, stopTime, _, _, _, _) =
+    realToFrac stopTime
+
+frameDuration :: FrameRecord -> Int
+frameDuration (startTime, stopTime, _, _, _, _) =
+    stopTime - startTime
+    --diffUTCTime (toUtc stopTime) (toUtc startTime)
+    --where 
+    --    toUtc i = posixSecondsToUTCTime $ realToFrac i

@@ -3,6 +3,7 @@ module TimeUtil where
 
 import Control.Monad
 import Data.Maybe
+import qualified Data.Time.Calendar as Cal
 import Data.Time
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
@@ -18,6 +19,49 @@ posixTimeToZoned :: TimeZone -> POSIXTime -> ZonedTime
 posixTimeToZoned tz pt =
     utcToZonedTime tz $ posixSecondsToUTCTime pt
 
+addDays :: Integer -> ZonedTime -> ZonedTime
+addDays days ZonedTime{zonedTimeToLocalTime=lt, zonedTimeZone=tz} =
+    ZonedTime adjusted tz
+    where
+        adjusted = LocalTime (Cal.addDays days (localDay lt)) (localTimeOfDay lt)
+
+
+-- TODO: better way to do this? can we define functions for each and compose into
+-- a single conversion function?
+humanDuration :: Int -> String
+humanDuration totalSeconds =
+    unwords 
+        $ map (\(a,b) -> (show a)++b)
+        $ filter (\(a,b) -> a > 0) [
+            (days, "d"),
+            (hours, "h"),
+            (minutes, "m"),
+            (seconds, "s")
+        ]
+    where
+        days = totalSeconds `div` 86400
+        hours = (totalSeconds `mod` 86400) `div` 3600
+        minutes = (totalSeconds `mod` 86400 `mod` 3600) `div` 60
+        seconds = (totalSeconds `mod` 86400 `mod` 3600 `mod` 60)
+
+
+-- here's a weird recursion thing that baffled me for a bit
+humanDuration'' :: Int -> String
+humanDuration'' seconds =
+    unwords 
+        $ map (\(a,b) -> (show a)++b)
+        $ filter (\(a,b) -> a > 0) [
+            (days, "d"),
+            (hours, "h"),
+            (minutes, "m"),
+            (seconds, "s")
+        ]
+    where
+        days = seconds `div` 86400
+        hours = (seconds `mod` 86400) `div` 3600
+        minutes = (seconds `mod` 86400 `mod` 3600) `div` 60
+        seconds = (seconds `mod` 86400 `mod` 3600 `mod` 60)
+
 getTimeWithin24Hrs :: String -> IO (LocalTime)
 getTimeWithin24Hrs timeStr = do
     curTime <- zonedTimeToLocalTime <$> getZonedTime
@@ -27,7 +71,7 @@ getTimeWithin24Hrs timeStr = do
     let possibleTime = LocalTime curDay userSeconds
 
     let adjusted = if possibleTime < curTime then
-                       LocalTime (addDays (negate 1) curDay) userSeconds
+                       LocalTime (Cal.addDays (negate 1) curDay) userSeconds
                    else
                        possibleTime
 
@@ -37,7 +81,7 @@ getTimeWithin24Hrs timeStr = do
 getTimeWithin24Hrs' :: ZonedTime -> String -> ZonedTime
 getTimeWithin24Hrs' curTime timeStr = 
     if (zonedTimeToUTC possibleTime) > (zonedTimeToUTC curTime) then
-        ZonedTime (LocalTime (addDays (negate 1) curDay) userSeconds) (zonedTimeZone curTime)
+        ZonedTime (LocalTime (Cal.addDays (negate 1) curDay) userSeconds) (zonedTimeZone curTime)
     else
         possibleTime
     where
@@ -59,7 +103,7 @@ getTimeWithin24Hrs'' timeStr = do
     let greaterThanNow = ((>) curTime) <$> possibleTime
 
     let adjusted = if fromMaybe True greaterThanNow then
-                       LocalTime (addDays (negate 1) curDay) <$> userSeconds
+                       LocalTime (Cal.addDays (negate 1) curDay) <$> userSeconds
                    else
                        possibleTime
 
