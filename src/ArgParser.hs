@@ -10,7 +10,7 @@ data Command
     | Cancel
 
     | Projects -- display list of projects
-    | Report
+    | Report (Maybe String) (Maybe String)
 
 data CommandLineArgs = CommandLineArgs Command
 
@@ -69,4 +69,10 @@ projectsCommand =
 
 reportCommand :: Mod CommandFields Command
 reportCommand =
-    command "report" (info (pure Report) (progDesc "generate a project report"))
+    command "report" (info (reportCommandArgs) (progDesc "generate a project report"))
+
+reportCommandArgs :: Parser Command
+reportCommandArgs =
+    Report <$> (optional $ strOption (long "from" <> help "Start time"))
+           <*> (optional $ strOption (long "to" <> help "Stop time"))
+

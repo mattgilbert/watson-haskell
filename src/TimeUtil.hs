@@ -11,6 +11,10 @@ import Data.Time.LocalTime
 
 timeFormat = "%H:%M"
 
+parseToZonedTime :: String -> ZonedTime
+parseToZonedTime timeStr =
+    parseTimeOrError True defaultTimeLocale "%0Y-%m-%d" timeStr :: ZonedTime
+
 zonedTimeToPOSIX :: ZonedTime -> POSIXTime
 zonedTimeToPOSIX zt =
     utcTimeToPOSIXSeconds $ zonedTimeToUTC zt

@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 module Report where
 
 import Data.List
@@ -9,33 +12,33 @@ data ReportCriteria = ReportCriteria {
     dateRange :: Maybe (ZonedTime, ZonedTime)
 }
 
+data ReportResult = ReportResult {
+    dateRange :: (ZonedTime, ZonedTime),
+    summaries :: [String]
+}
+
 defaultCriteria :: ReportCriteria
 defaultCriteria =
     ReportCriteria Nothing
 
-frameWithinRange :: ZonedTime -> Maybe (ZonedTime, ZonedTime) -> FrameRecord -> Bool
-frameWithinRange curTime Nothing frame =
-    frameWithinRange curTime (Just (sevenDaysAgo, curTime)) frame
-    where
-        sevenDaysAgo = addDays (negate 7) curTime
-frameWithinRange _ (Just (from, to)) frame =
-    (frameStopTime frame) >= (zonedTimeToPOSIX from) &&
-    (frameStopTime frame) <= (zonedTimeToPOSIX to)
-
--- Default:
--- everything within last 7 days, grouped by project
---    projA 10h 5m 10s
---    projB 1h 3m
-generate :: ReportCriteria -> ZonedTime -> Frames -> [String]
+generate :: ReportCriteria -> ZonedTime -> Frames -> ReportResult
 generate ReportCriteria{dateRange=dateRange} curTime frames =
-    fmap totalTimes $ 
-        groupBy sameProject $ 
-        filter (frameWithinRange curTime dateRange) frames
+    ReportResult range times
+
     where
-        sevenDaysAgo = 
-            zonedTimeToPOSIX $ addDays (negate 7) curTime
-        withinLast7Days frame =
-            (frameStopTime frame) > sevenDaysAgo
+        times = fmap totalTimes $ 
+            groupBy sameProject $ 
+            filter (frameWithinRange range) frames
+
+        range = determineDateRange dateRange
+
+        determineDateRange Nothing = (addDays (negate 7) curTime, curTime)
+        determineDateRange (Just (from, to)) = (from, to)
+
+        frameWithinRange (from, to) frame =
+            (frameStopTime frame) >= (zonedTimeToPOSIX from) &&
+            (frameStopTime frame) <= (zonedTimeToPOSIX to)
+
         sameProject p1 p2 = 
             frameProject p1 == frameProject p2
         totalTimes frames =

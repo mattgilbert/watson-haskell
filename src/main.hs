@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 module Main where
 
 import System.IO
@@ -7,6 +9,7 @@ import Data.List
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
+import Data.Time.Format
 import Data.UUID.V1
 import Data.Maybe
 import Control.Monad
@@ -15,7 +18,7 @@ import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
 import TimeUtil
 import TimeTracker
 import TrackerData
-import qualified Report as Report (ReportCriteria(..), defaultCriteria, generate)
+import qualified Report as Report 
 
 {--
 TODO:
@@ -99,8 +102,22 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
         pure $ Success projNames
 
 ---- Report
-runCommand CommandState{cmd=Args.Report, frames=frames, curTime=curTime} = do
-    pure $ Success $ Report.generate Report.defaultCriteria curTime frames
+runCommand CommandState{cmd=(Args.Report from to), frames=frames, curTime=curTime} = do
+    pure $ Success $ dateRangeText:summaries
+    where
+        dateRangeText = "Report period: " ++ (show dateStart) ++ " to " ++ (show dateEnd)
+
+        (dateStart, dateEnd) = dateRange
+        Report.ReportResult{dateRange=dateRange, summaries=summaries} =
+            Report.generate criteria curTime frames
+
+        criteria = if isNothing (sequence [from, to]) then
+                       Report.defaultCriteria
+                   else
+                       buildCriteria
+        buildCriteria =
+            -- yuck
+            Report.ReportCriteria $ Just ((parseToZonedTime $ fromJust from), (parseToZonedTime $ fromJust to))
 
 startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName curTime startTimeStr = do
