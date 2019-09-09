@@ -103,13 +103,9 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
 
 ---- Report
 runCommand CommandState{cmd=(Args.Report from to), frames=frames, curTime=curTime} = do
-    pure $ Success $ dateRangeText:summaries
+    pure $ Success $ Report.format result
     where
-        dateRangeText = "Report period: " ++ (show dateStart) ++ " to " ++ (show dateEnd)
-
-        (dateStart, dateEnd) = dateRange
-        Report.ReportResult{dateRange=dateRange, summaries=summaries} =
-            Report.generate criteria curTime frames
+        result = Report.generate criteria curTime frames
 
         criteria = if isNothing (sequence [from, to]) then
                        Report.defaultCriteria
@@ -117,7 +113,7 @@ runCommand CommandState{cmd=(Args.Report from to), frames=frames, curTime=curTim
                        buildCriteria
         buildCriteria =
             -- yuck
-            Report.ReportCriteria $ Just ((parseToZonedTime $ fromJust from), (parseToZonedTime $ fromJust to))
+            Report.ReportCriteria $ Just $ parseRangeToZonedTime from to
 
 startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName curTime startTimeStr = do

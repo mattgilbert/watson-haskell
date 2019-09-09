@@ -11,6 +11,12 @@ import Data.Time.LocalTime
 
 timeFormat = "%H:%M"
 
+data DateRange = DateRange ZonedTime ZonedTime
+
+parseRangeToZonedTime :: Maybe String -> Maybe String -> DateRange
+parseRangeToZonedTime from to =
+    DateRange (parseToZonedTime $ fromJust from) (parseToZonedTime $ fromJust to)
+
 parseToZonedTime :: String -> ZonedTime
 parseToZonedTime timeStr =
     parseTimeOrError True defaultTimeLocale "%0Y-%m-%d" timeStr :: ZonedTime
