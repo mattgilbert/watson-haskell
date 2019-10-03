@@ -14,8 +14,8 @@ import TimeUtil
 import TrackerData
 
 data ReportCriteria = ReportCriteria {
-    dateStart :: Maybe ZonedTime,
-    dateEnd :: Maybe ZonedTime,
+    dateStart :: ZonedTime,
+    dateEnd :: ZonedTime,
     useCurrent :: Maybe Bool
 } deriving Show
 
@@ -50,7 +50,7 @@ generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurr
             groupBy sameProject $ 
             filter (frameWithinRange range) allFrames
 
-        range = DateRange (fromJust dateStart) (fromJust dateEnd) -- (addDays (-7) midnightToday) (addDays 1 midnightToday)
+        range = DateRange dateStart dateEnd
 
         ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=curTimeZone} = curTime
         midnight = TimeOfDay 0 0 0

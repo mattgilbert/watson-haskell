@@ -35,6 +35,20 @@ addDays days ZonedTime{zonedTimeToLocalTime=lt, zonedTimeZone=tz} =
     where
         adjusted = LocalTime (Cal.addDays days (localDay lt)) (localTimeOfDay lt)
 
+startOfMonth :: ZonedTime -> ZonedTime
+startOfMonth t =
+    ZonedTime (LocalTime monthStartDay midnight) tz
+    where
+        ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=tz} = t
+        (year, month, day) = Cal.toGregorian (localDay curLocalTime)
+        monthStartDay = Cal.fromGregorian year month 1
+
+midnightOf :: ZonedTime -> ZonedTime
+midnightOf t =
+    ZonedTime (LocalTime (localDay curLocalTime) midnight) curTimeZone
+    where
+        ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=curTimeZone} = t
+
 
 -- TODO: better way to do this? can we define functions for each and compose into
 -- a single conversion function?

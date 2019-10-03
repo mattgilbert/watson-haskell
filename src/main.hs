@@ -10,6 +10,7 @@ import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
 import Data.Time.Format
+import qualified Data.Time.Calendar as Cal
 import Data.UUID.V1
 import Data.Maybe
 import Control.Monad
@@ -102,29 +103,20 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
         pure $ Success projNames
 
 ---- Report
-runCommand CommandState{cmd=cmd, frames=frames, curTime=curTime, state=state} = do
-    let (Args.Report range useCurrent) = cmd
-    let (from, to) = case (fromJust range) of
-                        (Args.Specific from to) -> (parseToZonedTime from, parseToZonedTime to)
-                        Args.LastYear -> (parseToZonedTime "2018-10-02", parseToZonedTime "2019-10-02")
-    let criteria = Report.ReportCriteria (Just from) (Just to) useCurrent
-    print from
-    print to
-    print criteria
+runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTime=curTime, state=state} = do
+    let midnightToday = midnightOf curTime
+    let (from, to) =
+            case (fromJust range) of
+                Args.Specific from to -> (parseToZonedTime from, parseToZonedTime to)
+                Args.LastYear -> (addDays (-365) midnightToday, midnightToday)
+                Args.LastMonth -> (startOfMonth curTime, midnightToday)
+                _ -> (addDays (-7) midnightToday, midnightToday)
+                -- LastWeek is implied with the default
+
+    let criteria = Report.ReportCriteria from to useCurrent
     let result = Report.generate criteria curTime state frames
+
     pure $ Success $ Report.format result
-        
-
-        -- parseRangeToZonedTime (from) (to)
-
-            -- (Just dateRange) 
-            -- useCurrent
-
-        -- criteria = if (isNothing (sequence [from, to])) && (isNothing useCurrent) then
-        --                Report.defaultCriteria
-        --            else
-        --                buildCriteria
-
 
 startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName curTime startTimeStr = do

@@ -14,15 +14,11 @@ data Command
         (Maybe ReportDateRange)
         (Maybe Bool)   -- current/no-current
 
--- data SpecificRange = SpecificRange String String
-
--- need the separate type since these are mutually exclusive
--- TODO: integrate into Report constructor above somehow, and adjust arg parser
 data ReportDateRange 
     = Specific String String
     | LastYear
-    -- | LastMonth
-    -- | Week
+    | LastMonth
+    | LastWeek
     -- | Day
     -- luna? really?
 
@@ -88,11 +84,11 @@ reportCommand =
 
 reportCommandArgs :: Parser Command
 reportCommandArgs =
-    Report <$> (optional foo)
+    Report <$> (optional dateRangeParser)
            <*> (optional $ switch (long "current" <> short 'c' <> help "Include current frame"))
 
-foo :: Parser ReportDateRange
-foo =
+dateRangeParser :: Parser ReportDateRange
+dateRangeParser =
     (specificRangeParser <|> rangeOptionParser)
 
 specificRangeParser :: Parser ReportDateRange
@@ -102,19 +98,5 @@ specificRangeParser =
 
 rangeOptionParser :: Parser ReportDateRange
 rangeOptionParser =
-    flag' LastYear (long "y" <> help "last year")
-
--- reportDateRangeArg :: Parser ReportDateRange
--- reportDateRangeArg =
---     (flag' LastYear (long "y")) 
---         <|> (flag' Specific specificRangeArg)
---         <|> pure LastYear
---          
--- 
--- specificRangeArg :: Parser SpecificRange
--- specificRangeArg = 
---     undefined
-    {--
-    Specific <$> (strOption (long "from" <> help "Report start date"))
-                  <*> (strOption (long "to" <> help "Report end date"))
-    --}
+    flag' LastYear (short 'y'<> help "last year")
+    <|> flag' LastMonth (short 'm'<> help "last month")
