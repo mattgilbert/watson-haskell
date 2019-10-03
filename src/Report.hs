@@ -4,24 +4,26 @@
 module Report where
 
 import Text.Printf
+import Data.Maybe
 import Data.List
 import Data.Time.LocalTime
 import Data.Time.Format
+
 import TimeTracker
 import TimeUtil
+import TrackerData
 
 data ReportCriteria = ReportCriteria {
-    dateRange :: Maybe DateRange
-}
+    dateStart :: Maybe ZonedTime,
+    dateEnd :: Maybe ZonedTime,
+    useCurrent :: Maybe Bool
+} deriving Show
 
 data ReportResult = ReportResult {
     dateRange :: DateRange,
     summaries :: [(String, Int)]
 }
 
-defaultCriteria :: ReportCriteria
-defaultCriteria =
-    ReportCriteria Nothing
 
 format :: ReportResult -> [String]
 format ReportResult{dateRange=DateRange dateStart dateEnd, summaries=summaries} =
@@ -34,18 +36,26 @@ format ReportResult{dateRange=DateRange dateStart dateEnd, summaries=summaries} 
         fmtDate = formatTime defaultTimeLocale (dateFmt defaultTimeLocale)
     
 
-generate :: ReportCriteria -> ZonedTime -> Frames -> ReportResult
-generate ReportCriteria{dateRange=dateRange} curTime frames =
+generate :: ReportCriteria -> ZonedTime -> State -> Frames -> ReportResult
+generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurrent} curTime state frames =
     ReportResult range times
 
     where
+        allFrames = if isNothing useCurrent then
+                        frames
+                    else
+                        (stateToFrame curTime Nothing state):frames
+                        
         times = fmap asSummaries $ 
             groupBy sameProject $ 
-            filter (frameWithinRange range) frames
+            filter (frameWithinRange range) allFrames
 
-        range = determineDateRange dateRange
+        range = DateRange (fromJust dateStart) (fromJust dateEnd) -- (addDays (-7) midnightToday) (addDays 1 midnightToday)
 
-        determineDateRange Nothing = DateRange (addDays (negate 7) curTime) curTime
+        ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=curTimeZone} = curTime
+        midnight = TimeOfDay 0 0 0
+        midnightToday = ZonedTime (LocalTime (localDay curLocalTime) midnight) curTimeZone
+        determineDateRange Nothing = DateRange (addDays (-7) midnightToday) (addDays 1 midnightToday)
         determineDateRange (Just (dr)) = dr
 
         frameWithinRange (DateRange from to) frame =

@@ -14,7 +14,7 @@ import Data.UUID.V1
 import Data.Maybe
 import Control.Monad
 
-import qualified ArgParser as Args (CommandLineArgs(..), Command(..), getArgs)
+import qualified ArgParser as Args --(CommandLineArgs(..), Command(..), getArgs)
 import TimeUtil
 import TimeTracker
 import TrackerData
@@ -102,18 +102,29 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
         pure $ Success projNames
 
 ---- Report
-runCommand CommandState{cmd=(Args.Report from to), frames=frames, curTime=curTime} = do
+runCommand CommandState{cmd=cmd, frames=frames, curTime=curTime, state=state} = do
+    let (Args.Report range useCurrent) = cmd
+    let (from, to) = case (fromJust range) of
+                        (Args.Specific from to) -> (parseToZonedTime from, parseToZonedTime to)
+                        Args.LastYear -> (parseToZonedTime "2018-10-02", parseToZonedTime "2019-10-02")
+    let criteria = Report.ReportCriteria (Just from) (Just to) useCurrent
+    print from
+    print to
+    print criteria
+    let result = Report.generate criteria curTime state frames
     pure $ Success $ Report.format result
-    where
-        result = Report.generate criteria curTime frames
+        
 
-        criteria = if isNothing (sequence [from, to]) then
-                       Report.defaultCriteria
-                   else
-                       buildCriteria
-        buildCriteria =
-            -- yuck
-            Report.ReportCriteria $ Just $ parseRangeToZonedTime from to
+        -- parseRangeToZonedTime (from) (to)
+
+            -- (Just dateRange) 
+            -- useCurrent
+
+        -- criteria = if (isNothing (sequence [from, to])) && (isNothing useCurrent) then
+        --                Report.defaultCriteria
+        --            else
+        --                buildCriteria
+
 
 startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName curTime startTimeStr = do
@@ -139,7 +150,9 @@ stopTracking curTime stopTimeStr state clearState addFrame = do
     maybeNewId <- nextUUID
     let newId = fromJust maybeNewId
 
-    addFrame (start state, round stopTime, project state, newId, [], round stopTime)
+    let newFrame = stateToFrame curTime (Just newId) state
+    --addFrame (start state, round stopTime, project state, newId, [], round stopTime)
+    addFrame newFrame
     clearState
 
     let friendlyTime = utcToZonedTime (zonedTimeZone curTime) $ posixSecondsToUTCTime stopTime

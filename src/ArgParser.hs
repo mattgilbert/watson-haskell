@@ -1,4 +1,4 @@
-module ArgParser (CommandLineArgs(..), Command(..), getArgs) where
+module ArgParser (CommandLineArgs(..), Command(..), ReportDateRange(..), getArgs) where
 
 import Options.Applicative
 import TimeTracker
@@ -10,7 +10,22 @@ data Command
     | Cancel
 
     | Projects -- display list of projects
-    | Report (Maybe String) (Maybe String)
+    | Report 
+        (Maybe ReportDateRange)
+        (Maybe Bool)   -- current/no-current
+
+-- data SpecificRange = SpecificRange String String
+
+-- need the separate type since these are mutually exclusive
+-- TODO: integrate into Report constructor above somehow, and adjust arg parser
+data ReportDateRange 
+    = Specific String String
+    | LastYear
+    -- | LastMonth
+    -- | Week
+    -- | Day
+    -- luna? really?
+
 
 data CommandLineArgs = CommandLineArgs Command
 
@@ -73,6 +88,33 @@ reportCommand =
 
 reportCommandArgs :: Parser Command
 reportCommandArgs =
-    Report <$> (optional $ strOption (long "from" <> help "Start time"))
-           <*> (optional $ strOption (long "to" <> help "Stop time"))
+    Report <$> (optional foo)
+           <*> (optional $ switch (long "current" <> short 'c' <> help "Include current frame"))
 
+foo :: Parser ReportDateRange
+foo =
+    (specificRangeParser <|> rangeOptionParser)
+
+specificRangeParser :: Parser ReportDateRange
+specificRangeParser =
+    Specific <$> (strOption (long "from" <> help "Report start date"))
+             <*> (strOption (long "to" <> help "Report end date"))
+
+rangeOptionParser :: Parser ReportDateRange
+rangeOptionParser =
+    flag' LastYear (long "y" <> help "last year")
+
+-- reportDateRangeArg :: Parser ReportDateRange
+-- reportDateRangeArg =
+--     (flag' LastYear (long "y")) 
+--         <|> (flag' Specific specificRangeArg)
+--         <|> pure LastYear
+--          
+-- 
+-- specificRangeArg :: Parser SpecificRange
+-- specificRangeArg = 
+--     undefined
+    {--
+    Specific <$> (strOption (long "from" <> help "Report start date"))
+                  <*> (strOption (long "to" <> help "Report end date"))
+    --}

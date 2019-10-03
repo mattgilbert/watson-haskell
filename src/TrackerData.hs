@@ -5,6 +5,8 @@ module TrackerData where
 import System.IO
 
 import Data.Maybe
+import Data.Time.LocalTime
+import qualified Data.UUID as UUID
 import Prelude hiding (catch)
 import System.Directory
 import Control.Exception
@@ -16,6 +18,7 @@ import qualified Data.ByteString.Lazy.UTF8 as BSL8
 import qualified Data.ByteString.Lazy as BS (writeFile, readFile)
 
 import TimeTracker
+import TimeUtil
 
 framesFileName = "./frames.json"
 stateFileName = "./state.json"
@@ -39,6 +42,11 @@ addFrame frames newFrame = do
     let newFrames = frames ++ [newFrame]
     BS.writeFile framesFileName (encode newFrames)
     
+stateToFrame :: ZonedTime -> Maybe UUID.UUID -> State -> FrameRecord
+stateToFrame curTime newId state =
+    (start state, round stopTime, project state, fromMaybe UUID.nil newId, [], round stopTime)
+    where
+        stopTime = zonedTimeToPOSIX curTime
 
 loadState :: IO (State)
 loadState = do
