@@ -3,7 +3,7 @@
 module TimeTracker where
 
 import GHC.Generics
-import Data.UUID
+import UUID
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import TimeUtil

@@ -11,11 +11,11 @@ import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
 import Data.Time.Format
 import qualified Data.Time.Calendar as Cal
-import Data.UUID.V1
 import Data.Maybe
 import Control.Monad
 
 import qualified ArgParser as Args --(CommandLineArgs(..), Command(..), getArgs)
+import UUID
 import TimeUtil
 import TimeTracker
 import TrackerData
@@ -23,15 +23,11 @@ import qualified Report as Report
 
 {--
 TODO:
-- maybe we don't want to use a Reader? still end up with a bunch of "do" functions
-? when displaying times, show "X <units> ago", e.g. "4 months ago" or "5 minutes ago"
 - support for tags
-- REPORT command
-  - default: last 7 days, all projects, text output
-  - date range
-  - output type: text, json, csv
-  - limit to project name
-  - limit to specific tags
+- report
+    - output type: text, json, csv
+    - limit to project name
+    - limit to specific tags
 
 FUTURE:
 - config: choose backend, choose file locations, etc
@@ -139,7 +135,7 @@ stopTracking :: ZonedTime -> Maybe String -> State -> IO() -> (FrameRecord -> IO
 stopTracking curTime stopTimeStr state clearState addFrame = do
     let stopTime = zonedTimeToPOSIX $ fromMaybe curTime $ fmap (getTimeWithin24Hrs' curTime) stopTimeStr
 
-    maybeNewId <- nextUUID
+    maybeNewId <- UUID.nextUUID
     let newId = fromJust maybeNewId
 
     let newFrame = stateToFrame curTime (Just newId) state
