@@ -14,25 +14,13 @@ import qualified Data.Time.Calendar as Cal
 import Data.Maybe
 import Control.Monad
 
-import qualified ArgParser as Args --(CommandLineArgs(..), Command(..), getArgs)
+import qualified ArgParser as Args
 import UUID
 import TimeUtil
 import TimeTracker
 import TrackerData
 import qualified Report as Report 
 
-{--
-TODO:
-- report
-    - output type: text, json, csv
-    - limit to project name
-    - limit to specific tags
-- refactor/improve
-  - parseWatsonTags
-  - move aeson instances to separate file
-  - change UUID to UUID' and get rid of silly GUID prefix
-  - tags: State uses Maybe [], frame uses []... get these consistent
---}
 data CommandResult = Success [String] | Failure [String]
 
 data CommandState = CommandState
