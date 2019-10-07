@@ -4,27 +4,27 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 
 Watson commands in bold have been implemented.
 
-add
-aggregate
-**cancel**
-config
-edit
-frames
-**help**
-log
-merge
-**projects**
-remove
-rename
-**report**
-restart
-**start**
-**status**
-**stop**
-sync
-tags
+- add
+- aggregate
+- **cancel**
+- config
+- edit
+- frames
+- **help**
+- log
+- merge
+- **projects**
+- remove
+- rename
+- **report**
+- restart
+- **start**
+- **status**
+- **stop**
+- sync
+- tags
 
-Todo:
+### Todo
 - tags command
 - restart command
 - report
