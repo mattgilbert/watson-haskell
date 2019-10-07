@@ -35,12 +35,20 @@ addDays days ZonedTime{zonedTimeToLocalTime=lt, zonedTimeZone=tz} =
     where
         adjusted = LocalTime (Cal.addDays days (localDay lt)) (localTimeOfDay lt)
 
+startOfYear :: ZonedTime -> ZonedTime
+startOfYear t =
+    ZonedTime (LocalTime startDay midnight) tz
+    where
+        ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=tz} = t
+        (year, _, _) = Cal.toGregorian (localDay curLocalTime)
+        startDay = Cal.fromGregorian year 1 1
+
 startOfMonth :: ZonedTime -> ZonedTime
 startOfMonth t =
     ZonedTime (LocalTime monthStartDay midnight) tz
     where
         ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=tz} = t
-        (year, month, day) = Cal.toGregorian (localDay curLocalTime)
+        (year, month, _) = Cal.toGregorian (localDay curLocalTime)
         monthStartDay = Cal.fromGregorian year month 1
 
 midnightOf :: ZonedTime -> ZonedTime

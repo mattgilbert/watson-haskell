@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module Main where
 
+import Debug.Trace
 import System.IO
 import System.Exit
 import Data.List
@@ -48,7 +49,9 @@ main = do
     cmd <- Args.getArgs
     curTime <- getZonedTime
 
-    let cmdState = CommandState cmd state frames curTime
+    print cmd
+
+    let cmdState = CommandState (watsonifyArgs cmd) state frames curTime
 
     -- using seq to force evaluation, blech
     result <- state `seq` frames `seq` runCommand cmdState
@@ -61,6 +64,30 @@ main = do
             forM_ msgs putStrLn
             exitFailure
 
+watsonifyArgs :: Args.Command -> Args.Command
+watsonifyArgs (Args.Start at projName tags) =
+    -- watson cli takes tags starting with + so that tag names can have
+    -- spaces, *and* so can project name. optparse doesn't really work like
+    -- that, so we'll monkey with the args here for now
+    Args.Start at watsonProjName watsonTags
+    where
+      (projNameRemainder, remainingTags) = span (\(c:_) -> c /= '+') tags
+      watsonProjName = projName ++ (intercalate " " projNameRemainder)
+
+      watsonTags = parseWatsonTags [] remainingTags
+
+watsonifyArgs cmd =
+    cmd
+
+parseWatsonTags :: [String] -> [String] -> [String]
+parseWatsonTags actualTags [] = actualTags
+parseWatsonTags actualTags (tagStart:remainingWords) =
+    parseWatsonTags (actualTags ++ [(intercalate " " (tagStart:nextTagWords))]) remaining
+    where
+        (nextTagWords, blah) = break (\(c:_) -> c == '+') remainingWords
+        remaining = trace (show nextTagWords ++ show blah) blah
+
+
 runCommand :: CommandState -> IO (CommandResult)
 
 -- Status
@@ -69,13 +96,14 @@ runCommand CommandState{cmd=Args.Status, state=NotTracking} =
 runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime _), curTime=curTime} = do
     let tz = zonedTimeZone curTime
     let localStartTime = posixTimeToZoned tz (realToFrac startTime)
-    pure $ Success [("tracking "++ proj++", started "++(show localStartTime))]
+    let diff = (round $ realToFrac $ zonedTimeToPOSIX curTime) - (startTime)
+    pure $ Success [("tracking "++ proj++", started "++(show $ humanDuration diff))]
 
 -- Start
-runCommand CommandState{cmd=(Args.Start p at), state=(Tracking proj _ _)} = 
+runCommand CommandState{cmd=(Args.Start at p tags), state=(Tracking proj _ _)} = 
     pure $ Failure [("project " ++ proj ++ " already started!")]
-runCommand CommandState{cmd=(Args.Start p at), state=NotTracking, curTime=curTime} =
-    startTracking saveState p curTime at
+runCommand CommandState{cmd=(Args.Start at p tags), state=NotTracking, curTime=curTime} =
+    startTracking saveState p tags curTime at
 
 -- Stop
 runCommand CommandState{cmd=(Args.Stop at), state=NotTracking} =
@@ -104,7 +132,7 @@ runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTi
     let (from, to) =
             case (fromJust range) of
                 Args.Specific from to -> (parseToZonedTime from, parseToZonedTime to)
-                Args.LastYear -> (addDays (-365) midnightToday, midnightToday)
+                Args.LastYear -> (startOfYear curTime, midnightToday)
                 Args.LastMonth -> (startOfMonth curTime, midnightToday)
                 _ -> (addDays (-7) midnightToday, midnightToday)
                 -- LastWeek is implied with the default
@@ -114,22 +142,25 @@ runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTi
 
     pure $ Success $ Report.format result
 
-startTracking :: (State -> IO()) -> ProjectName -> ZonedTime -> Maybe String -> IO (CommandResult)
-startTracking addState projName curTime startTimeStr = do
+startTracking :: (State -> IO()) -> ProjectName -> [String] -> ZonedTime -> Maybe String -> IO (CommandResult)
+startTracking addState projName tags curTime startTimeStr = do
     let unixTime = zonedTimeToPOSIX curTime
 
     -- TODO: can probably use bind here somehow and streamline this or turn into composition?
     let startTime = fmap (getTimeWithin24Hrs' curTime) startTimeStr
     let startTimePOSIX = (fmap (zonedTimeToPOSIX) startTime) 
 
+    let maybeTags = if length tags == 0 then Nothing 
+                    else Just tags
+
     addState (
         Tracking 
             { project = projName
             , start = round $ fromMaybe unixTime startTimePOSIX
-            , tags = Nothing }
+            , tags = maybeTags }
         )
     return $ Success [("added " ++ projName)]
-    
+
 
 stopTracking :: ZonedTime -> Maybe String -> State -> IO() -> (FrameRecord -> IO()) -> IO (CommandResult)
 stopTracking curTime stopTimeStr state clearState addFrame = do

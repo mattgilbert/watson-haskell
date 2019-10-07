@@ -5,7 +5,7 @@ import TimeTracker
 
 data Command 
     = Status
-    | Start ProjectName (Maybe String)
+    | Start (Maybe String) ProjectName [String]
     | Stop (Maybe String)
     | Cancel
 
@@ -13,6 +13,7 @@ data Command
     | Report 
         (Maybe ReportDateRange)
         (Maybe Bool)   -- current/no-current
+    deriving (Show)
 
 data ReportDateRange 
     = Specific String String
@@ -21,6 +22,7 @@ data ReportDateRange
     | LastWeek
     -- | Day
     -- luna? really?
+    deriving (Show)
 
 
 data CommandLineArgs = CommandLineArgs Command
@@ -59,8 +61,9 @@ startCommand =
 
 startCommandLineArgs :: Parser Command
 startCommandLineArgs =
-    Start <$> strArgument (metavar "PROJECT-NAME" <> help "name of project")
-          <*> (optional $ strOption (long "at" <> help "Start time"))
+    Start <$> (optional $ strOption (long "at" <> help "Start time"))
+          <*> strArgument (metavar "PROJECT-NAME" <> help "name of project")
+          <*> (many (strArgument (help "dfgfd")))
 
 stopCommand :: Mod CommandFields Command
 stopCommand =
