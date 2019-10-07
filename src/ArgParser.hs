@@ -63,7 +63,7 @@ startCommandLineArgs :: Parser Command
 startCommandLineArgs =
     Start <$> (optional $ strOption (long "at" <> help "Start time"))
           <*> strArgument (metavar "PROJECT-NAME" <> help "name of project")
-          <*> (many (strArgument (help "dfgfd")))
+          <*> (many (strArgument (help "tags")))
 
 stopCommand :: Mod CommandFields Command
 stopCommand =

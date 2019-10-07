@@ -72,12 +72,13 @@ watsonifyArgs (Args.Start at projName tags) =
     Args.Start at watsonProjName watsonTags
     where
       (projNameRemainder, remainingTags) = span (\(c:_) -> c /= '+') tags
-      watsonProjName = projName ++ (intercalate " " projNameRemainder)
+      watsonProjName = projName ++ " " ++ (intercalate " " projNameRemainder)
 
-      watsonTags = parseWatsonTags [] remainingTags
+      watsonTags = stripPlus <$> parseWatsonTags [] remainingTags
+      stripPlus ('+':t) = t
+      stripPlus t = t
 
-watsonifyArgs cmd =
-    cmd
+watsonifyArgs cmd = cmd
 
 parseWatsonTags :: [String] -> [String] -> [String]
 parseWatsonTags actualTags [] = actualTags

@@ -5,25 +5,28 @@ module UUID where
 import Prelude hiding (take, drop)
 import qualified Data.UUID as GUID
 import qualified Data.UUID.V1 as UUIDv1 (nextUUID)
-import Data.Text
+import Data.Text as Text
 import Data.ByteString (ByteString)
 
 newtype UUID = MkUUID GUID.UUID
 
 fromText :: Text -> Maybe UUID
 fromText uuidStr =
-    MkUUID <$> (GUID.fromText hyphensAdded)
+    MkUUID <$> (GUID.fromText addHyphens)
     where
-        hyphensAdded = intercalate "-"
-            [ chunk 0 8 uuidStr
-            , chunk 8 4 uuidStr
-            , chunk 12 4 uuidStr
-            , chunk 16 4 uuidStr
-            , chunk 20 12 uuidStr
-            ]
+        addHyphens = 
+            case (find (=='-') uuidStr) of
+                Just _ -> uuidStr
+                Nothing ->
+                    intercalate "-"
+                        [ chunk 0 8 uuidStr
+                        , chunk 8 4 uuidStr
+                        , chunk 12 4 uuidStr
+                        , chunk 16 4 uuidStr
+                        , chunk 20 12 uuidStr
+                        ]
 
         chunk a b = take b . drop a
-        zthen f g x = g (f x)
 
 toText :: UUID -> Text
 toText (MkUUID u) = GUID.toText u

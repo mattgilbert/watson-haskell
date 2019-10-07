@@ -17,10 +17,14 @@ import System.Directory
 import System.Info
 import System.FilePath
 import System.Posix
+import qualified Data.Aeson.Encoding as E
+import qualified Data.ByteString.Builder as B
 import Data.Aeson (withText, Value(..), eitherDecode', encode, decode, ToJSON(..), FromJSON(..))
+import qualified Data.ByteString as BS (ByteString, filter)
+import qualified Data.ByteString.Char8 as BS8 (filter)
 import qualified Data.ByteString.Lazy.Char8 as BC
 import qualified Data.ByteString.Lazy.UTF8 as BSL8
-import qualified Data.ByteString.Lazy as BS (writeFile, readFile)
+import qualified Data.ByteString.Lazy as BSL (writeFile, readFile)
 
 import TimeTracker
 import TimeUtil
@@ -43,7 +47,12 @@ instance FromJSON UUID.UUID where
 
 instance ToJSON UUID.UUID where
     toJSON = toJSON . UUID.toText
-    toEncoding = undefined
+    toEncoding =  E.unsafeToEncoding . quote . B.byteString . removeHyphens . UUID.toASCIIBytes
+        where
+            quote b = B.char8 '"' <> b <> B.char8 '"'
+
+removeHyphens :: BS.ByteString -> BS.ByteString
+removeHyphens = BS8.filter (\b -> b /= '-')
 
 
 loadFrames :: IO (Frames)
@@ -54,7 +63,7 @@ loadFrames = do
     if not fileExists then do
         return []
     else do
-        framesRaw <- BS.readFile framesFileName
+        framesRaw <- BSL.readFile framesFileName
         -- TODO: create frame file if it doesn't exist
         let lines = BC.split ('\n') framesRaw
         let withoutNewlines = BC.concat lines
@@ -68,13 +77,14 @@ addFrame :: Frames -> FrameRecord -> IO()
 addFrame frames newFrame = do
     let newFrames = frames ++ [newFrame]
     framesFileName <- getFramesFile <$> getHomeDirectory
-    BS.writeFile framesFileName (encode newFrames)
+    BSL.writeFile framesFileName (encode newFrames)
     
 stateToFrame :: ZonedTime -> Maybe UUID.UUID -> State -> FrameRecord
 stateToFrame curTime newId state =
-    (start state, round stopTime, project state, fromMaybe UUID.nil newId, [], round stopTime)
+    (start state, round stopTime, project state, fromMaybe UUID.nil newId, justTags, round stopTime)
     where
         stopTime = zonedTimeToPOSIX curTime
+        justTags = fromMaybe [] (tags state)
 
 loadState :: IO (State)
 loadState = do
@@ -83,14 +93,14 @@ loadState = do
     if not fileExists then do
         return NotTracking
     else do
-        stateRaw <- BS.readFile stateFileName
+        stateRaw <- BSL.readFile stateFileName
         let state = decode stateRaw :: Maybe State
         return $ fromMaybe NotTracking state
 
 saveState :: State -> IO ()
 saveState state = do
     homeDir <- getHomeDirectory
-    BS.writeFile (getStateFile homeDir) (encode state)
+    BSL.writeFile (getStateFile homeDir) (encode state)
 
 clearState :: IO ()
 clearState = do
