@@ -2,27 +2,20 @@
 
 A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Haskell. This project is just a vehicle for me to learn Haskell, but the goal is behavior that is the same as watson.
 
-Watson commands in bold have been implemented.
-
-- add
-- aggregate
-- **cancel**
-- config
-- edit
-- frames
-- **help**
-- log
-- merge
-- **projects**
-- remove
-- rename
-- **report**
-- restart
-- **start**
-- **status**
-- **stop**
-- sync
-- tags
+| Implemented | Todo  |
+|--------|-------|
+| cancel | add |
+| help | aggregate |
+| projects | config |
+| report | edit |
+| start | frames |
+| status | log |
+| stop | merge |
+| | remove |
+| | rename |
+| | restart |
+| | sync |
+| | tags |
 
 ### Todo
 - tags command
