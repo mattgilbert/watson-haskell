@@ -3,7 +3,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module Main where
 
-import Debug.Trace
 import System.IO
 import System.Exit
 import Data.List
@@ -24,15 +23,15 @@ import qualified Report as Report
 
 {--
 TODO:
-- support for tags
 - report
     - output type: text, json, csv
     - limit to project name
     - limit to specific tags
-
-FUTURE:
-- config: choose backend, choose file locations, etc
-- abstract so we can have file or sqlite backend
+- refactor/improve
+  - parseWatsonTags
+  - move aeson instances to separate file
+  - change UUID to UUID' and get rid of silly GUID prefix
+  - tags: State uses Maybe [], frame uses []... get these consistent
 --}
 data CommandResult = Success [String] | Failure [String]
 
@@ -85,8 +84,7 @@ parseWatsonTags actualTags [] = actualTags
 parseWatsonTags actualTags (tagStart:remainingWords) =
     parseWatsonTags (actualTags ++ [(intercalate " " (tagStart:nextTagWords))]) remaining
     where
-        (nextTagWords, blah) = break (\(c:_) -> c == '+') remainingWords
-        remaining = trace (show nextTagWords ++ show blah) blah
+        (nextTagWords, remaining) = break (\(c:_) -> c == '+') remainingWords
 
 
 runCommand :: CommandState -> IO (CommandResult)
