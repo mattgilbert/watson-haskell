@@ -13,9 +13,11 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 | stop | merge |
 | | remove |
 | | rename |
-| | restart |
+| restart | -S/-s, index, frame id |
 | | sync |
 | | tags |
+
+Also, config isn't read, so no config options are currently respected.
 
 ### Todo
 - tags command

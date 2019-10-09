@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module Main where
 
+import Debug.Trace
 import System.IO
 import System.Exit
 import Data.List
@@ -36,11 +37,9 @@ main = do
     cmd <- Args.getArgs
     curTime <- getZonedTime
 
-    print cmd
-
     let cmdState = CommandState (watsonifyArgs cmd) state frames curTime
 
-    -- using seq to force evaluation, blech
+    -- using seq to force evaluation to fix lazy IO problems, blech
     result <- state `seq` frames `seq` runCommand cmdState
 
     case result of
@@ -80,17 +79,26 @@ runCommand :: CommandState -> IO (CommandResult)
 -- Status
 runCommand CommandState{cmd=Args.Status, state=NotTracking} =
     pure $ Success ["not currently tracking a project"]
-runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime _), curTime=curTime} = do
+runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime maybeTags), curTime=curTime} = do
     let tz = zonedTimeZone curTime
     let localStartTime = posixTimeToZoned tz (realToFrac startTime)
     let diff = (round $ realToFrac $ zonedTimeToPOSIX curTime) - (startTime)
-    pure $ Success [("tracking "++ proj++", started "++(show $ humanDuration diff))]
+    let tagList = case maybeTags of 
+                    Just tags -> " [" ++(intercalate "," tags)++ "]"
+                    Nothing -> ""
+    pure $ Success [("tracking "++ proj++tagList ++ ", started "++(show $ humanDuration diff))]
 
 -- Start
 runCommand CommandState{cmd=(Args.Start at p tags), state=(Tracking proj _ _)} = 
     pure $ Failure [("project " ++ proj ++ " already started!")]
 runCommand CommandState{cmd=(Args.Start at p tags), state=NotTracking, curTime=curTime} =
     startTracking saveState p tags curTime at
+
+-- Restart
+runCommand CommandState{cmd=(Args.Restart), state=(Tracking proj _ _)} = 
+    pure $ Failure [("project " ++ proj ++ " already started!")]
+runCommand CommandState{cmd=(Args.Restart), frames=frames, state=NotTracking, curTime=curTime} =
+    restartTracking saveState frames curTime 
 
 -- Stop
 runCommand CommandState{cmd=(Args.Stop at), state=NotTracking} =
@@ -115,17 +123,17 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
 
 ---- Report
 runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTime=curTime, state=state} = do
-    let midnightToday = midnightOf curTime
+    let midnightTomorrow = midnightOf (addDays 1 curTime)
     let (from, to) =
-            case (fromJust range) of
-                Args.Specific from to -> (parseToZonedTime from, parseToZonedTime to)
-                Args.LastYear -> (startOfYear curTime, midnightToday)
-                Args.LastMonth -> (startOfMonth curTime, midnightToday)
-                _ -> (addDays (-7) midnightToday, midnightToday)
+            case range of
+                Just (Args.Specific from to) -> (parseToZonedTime from, parseToZonedTime to)
+                Just (Args.LastYear) -> (startOfYear curTime, midnightTomorrow)
+                Just (Args.LastMonth) -> (startOfMonth curTime, midnightTomorrow)
+                _ -> (addDays (-7) midnightTomorrow, midnightTomorrow)
                 -- LastWeek is implied with the default
 
-    let criteria = Report.ReportCriteria from to useCurrent
-    let result = Report.generate criteria curTime state frames
+    let criteria = Report.ReportCriteria from to (fromMaybe False useCurrent)
+    let result = Report.generate (trace (show criteria) criteria) curTime state frames
 
     pure $ Success $ Report.format result
 
@@ -148,6 +156,15 @@ startTracking addState projName tags curTime startTimeStr = do
         )
     return $ Success [("added " ++ projName)]
 
+restartTracking :: (State -> IO()) -> Frames -> ZonedTime -> IO (CommandResult)
+restartTracking addState frames curTime = do
+    if length frames == 0 then
+        return $ Failure ["can't restart, no projects started yet"]
+    else
+        startTracking addState projName tags curTime Nothing
+
+    where 
+        (_, _, projName, _, tags, _) = last frames
 
 stopTracking :: ZonedTime -> Maybe String -> State -> IO() -> (FrameRecord -> IO()) -> IO (CommandResult)
 stopTracking curTime stopTimeStr state clearState addFrame = do

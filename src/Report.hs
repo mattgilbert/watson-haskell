@@ -16,7 +16,7 @@ import TrackerData
 data ReportCriteria = ReportCriteria {
     dateStart :: ZonedTime,
     dateEnd :: ZonedTime,
-    useCurrent :: Maybe Bool
+    useCurrent :: Bool
 } deriving Show
 
 data ReportResult = ReportResult {
@@ -41,10 +41,10 @@ generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurr
     ReportResult range times
 
     where
-        allFrames = if isNothing useCurrent then
-                        frames
-                    else
+        allFrames = if useCurrent then
                         (stateToFrame curTime Nothing state):frames
+                    else
+                        frames
                         
         times = fmap asSummaries $ 
             groupBy sameProject $ 

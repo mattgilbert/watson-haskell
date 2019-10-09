@@ -6,6 +6,7 @@ import TimeTracker
 data Command 
     = Status
     | Start (Maybe String) ProjectName [String]
+    | Restart
     | Stop (Maybe String)
     | Cancel
 
@@ -45,6 +46,7 @@ commandCommandLineArgs =
     CommandLineArgs <$> subparser (
            statusCommand 
         <> startCommand 
+        <> restartCommand
         <> stopCommand 
         <> cancelCommand 
         <> projectsCommand
@@ -64,6 +66,10 @@ startCommandLineArgs =
     Start <$> (optional $ strOption (long "at" <> help "Start time"))
           <*> strArgument (metavar "PROJECT-NAME" <> help "name of project")
           <*> (many (strArgument (help "tags")))
+
+restartCommand :: Mod CommandFields Command
+restartCommand =
+    command "restart" (info (pure Restart) (progDesc "start tracking a project"))
 
 stopCommand :: Mod CommandFields Command
 stopCommand =
