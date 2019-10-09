@@ -104,6 +104,10 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
                 fmap (\(_, _, proj, _, _, _) -> proj) frames
         pure $ Success projNames
 
+---- Frames
+runCommand CommandState{cmd=Args.Frames, frames=frames} = do
+    pure $ Success $ intercalate "\n" $ toString . frameId <$> frames
+
 ---- Report
 runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTime=curTime, state=state} = do
     let (from, to) = getRange range

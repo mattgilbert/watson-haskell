@@ -39,6 +39,10 @@ initState = NotTracking
 initFrames :: [FrameRecord]
 initFrames = []
 
+frameId :: FrameRecord -> UUID'
+frameId (_, _, _, id, _, _) =
+    id
+
 frameProject :: FrameRecord -> String
 frameProject (_, _, projName, _, _, _) =
     projName

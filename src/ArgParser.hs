@@ -12,6 +12,7 @@ data Command
     | Cancel
 
     | Projects -- display list of projects
+    | Frames
     | Report 
         (Maybe ReportDateRange)
         (Maybe Bool)   -- current/no-current
@@ -74,6 +75,7 @@ commandCommandLineArgs =
         <> stopCommand 
         <> cancelCommand 
         <> projectsCommand
+        <> framesCommand
         <> reportCommand
     )
 
@@ -93,7 +95,7 @@ startCommandLineArgs =
 
 restartCommand :: Mod CommandFields Command
 restartCommand =
-    command "restart" (info (pure Restart) (progDesc "start tracking a project"))
+    command "restart" (info (pure Restart) (progDesc "restart most recent project"))
 
 stopCommand :: Mod CommandFields Command
 stopCommand =
@@ -110,6 +112,10 @@ cancelCommand =
 projectsCommand :: Mod CommandFields Command
 projectsCommand =
     command "projects" (info (pure Projects) (progDesc "list of all projects"))
+
+framesCommand :: Mod CommandFields Command
+framesCommand =
+    command "frames" (info (pure Frames) (progDesc "list all frame IDs"))
 
 reportCommand :: Mod CommandFields Command
 reportCommand =

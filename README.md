@@ -8,14 +8,13 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 | help | aggregate |
 | projects | config |
 | report | edit |
-| start | frames |
+| start | tags |
 | status | log |
 | stop | merge |
-| | remove |
+| frames | remove |
 | | rename |
 | restart | -S/-s, index, frame id |
 | | sync |
-| | tags |
 
 Also, config isn't read, so no config options are currently respected.
 

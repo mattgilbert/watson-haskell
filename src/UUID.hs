@@ -6,9 +6,14 @@ import Prelude hiding (take, drop)
 import qualified Data.UUID as UUID_
 import qualified Data.UUID.V1 as UUIDv1 (nextUUID)
 import Data.Text as Text
+import qualified Data.List as List (take)
 import Data.ByteString (ByteString)
 
 newtype UUID' = MkUUID UUID_.UUID
+
+toString :: UUID' -> String
+toString (MkUUID u) =
+    List.take 7 $ UUID_.toString u
 
 fromText :: Text -> Maybe UUID'
 fromText uuidStr =
