@@ -25,9 +25,9 @@ data ReportResult = ReportResult {
 }
 
 
-format :: ReportResult -> [String]
+format :: ReportResult -> String
 format ReportResult{dateRange=DateRange dateStart dateEnd, summaries=summaries} =
-    header:"":projects
+    intercalate "\n" (header:"":projects)
 
     where 
         header = printf "Report period: %s to %s" (fmtDate dateStart) (fmtDate dateEnd)

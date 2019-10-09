@@ -6,12 +6,13 @@ import GHC.Generics
 import UUID
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
+
 import TimeUtil
 
 type StartTime = Int
 type StopTime = Int
 type ProjectName = String
-type Id = UUID
+type Id = UUID'
 type TagName = String
 type LastUpdateTime = Int
 type Version = String

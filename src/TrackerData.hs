@@ -41,11 +41,11 @@ getStateFile homeDir = joinPath [dataPath homeDir, "state"]
 instance FromJSON State 
 instance ToJSON State 
 
-instance FromJSON UUID.UUID where
+instance FromJSON UUID.UUID' where
     parseJSON = withText "UUID" $
         maybe (fail "invalid UUID") pure . UUID.fromText
 
-instance ToJSON UUID.UUID where
+instance ToJSON UUID.UUID' where
     toJSON = toJSON . UUID.toText
     toEncoding =  E.unsafeToEncoding . quote . B.byteString . removeHyphens . UUID.toASCIIBytes
         where
@@ -79,7 +79,7 @@ addFrame frames newFrame = do
     framesFileName <- getFramesFile <$> getHomeDirectory
     BSL.writeFile framesFileName (encode newFrames)
     
-stateToFrame :: ZonedTime -> Maybe UUID.UUID -> State -> FrameRecord
+stateToFrame :: ZonedTime -> Maybe UUID.UUID' -> State -> FrameRecord
 stateToFrame curTime newId state =
     (start state, round stopTime, project state, fromMaybe UUID.nil newId, justTags, round stopTime)
     where

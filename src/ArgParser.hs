@@ -1,5 +1,6 @@
 module ArgParser (CommandLineArgs(..), Command(..), ReportDateRange(..), getArgs) where
 
+import Data.List
 import Options.Applicative
 import TimeTracker
 
@@ -31,7 +32,30 @@ data CommandLineArgs = CommandLineArgs Command
 getArgs :: IO (Command)
 getArgs = do
     (CommandLineArgs cmd) <- execParser (cmdLineArgsParser)
-    return cmd
+    return (watsonifyArgs cmd)
+
+watsonifyArgs :: Command -> Command
+watsonifyArgs (Start at projName tags) =
+    -- watson cli takes tags starting with + so that tag names can have
+    -- spaces, *and* so can project name. optparse doesn't really work like
+    -- that, so we'll monkey with the args here for now
+    Start at watsonProjName watsonTags
+    where
+      (projNameRemainder, remainingTags) = span (\(c:_) -> c /= '+') tags
+      watsonProjName = intercalate " " (projName:projNameRemainder)
+
+      watsonTags = stripPlus <$> parseWatsonTags [] remainingTags
+      stripPlus ('+':t) = t
+      stripPlus t = t
+
+watsonifyArgs cmd = cmd
+
+parseWatsonTags :: [String] -> [String] -> [String]
+parseWatsonTags actualTags [] = actualTags
+parseWatsonTags actualTags (tagStart:remainingWords) =
+    parseWatsonTags (actualTags ++ [(intercalate " " (tagStart:nextTagWords))]) remaining
+    where
+        (nextTagWords, remaining) = break (\(c:_) -> c == '+') remainingWords
 
 cmdLineArgsParser :: ParserInfo CommandLineArgs
 cmdLineArgsParser = info 

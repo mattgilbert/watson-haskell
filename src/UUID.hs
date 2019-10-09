@@ -3,16 +3,16 @@
 module UUID where
 
 import Prelude hiding (take, drop)
-import qualified Data.UUID as GUID
+import qualified Data.UUID as UUID_
 import qualified Data.UUID.V1 as UUIDv1 (nextUUID)
 import Data.Text as Text
 import Data.ByteString (ByteString)
 
-newtype UUID = MkUUID GUID.UUID
+newtype UUID' = MkUUID UUID_.UUID
 
-fromText :: Text -> Maybe UUID
+fromText :: Text -> Maybe UUID'
 fromText uuidStr =
-    MkUUID <$> (GUID.fromText addHyphens)
+    MkUUID <$> (UUID_.fromText addHyphens)
     where
         addHyphens = 
             case (find (=='-') uuidStr) of
@@ -28,16 +28,16 @@ fromText uuidStr =
 
         chunk a b = take b . drop a
 
-toText :: UUID -> Text
-toText (MkUUID u) = GUID.toText u
+toText :: UUID' -> Text
+toText (MkUUID u) = UUID_.toText u
 
-toASCIIBytes :: UUID -> ByteString
-toASCIIBytes (MkUUID u) = GUID.toASCIIBytes u
+toASCIIBytes :: UUID' -> ByteString
+toASCIIBytes (MkUUID u) = UUID_.toASCIIBytes u
 
-nil :: UUID
-nil = MkUUID GUID.nil
+nil :: UUID'
+nil = MkUUID UUID_.nil
 
-nextUUID :: IO (Maybe UUID)
+nextUUID :: IO (Maybe UUID')
 nextUUID = do
     newId <- UUIDv1.nextUUID
     return $ MkUUID <$> newId
