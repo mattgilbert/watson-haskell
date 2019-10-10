@@ -8,12 +8,12 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 | help | aggregate |
 | projects | config |
 | report | edit |
-| start | tags |
+| start | rename |
 | status | log |
 | stop | merge |
 | frames | remove |
-| | rename |
-| restart | -S/-s, index, frame id |
+| restart | restart -S/-s, index, frame id |
+| tags | |
 | | sync |
 
 Also, config isn't read, so no config options are currently respected.

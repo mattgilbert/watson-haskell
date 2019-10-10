@@ -99,10 +99,25 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
     if length frames == 0 then
         pure $ Success "no projects yet!"
     else do
-        let projNames = intercalate " " $
+        let projNames = intercalate "\n" $
+                sort $
                 unique $
                 fmap (\(_, _, proj, _, _, _) -> proj) frames
         pure $ Success projNames
+
+---- Tags
+runCommand CommandState{cmd=Args.Tags, frames=frames} = do
+    if length frames == 0 then
+        pure $ Success "no projects yet!"
+    else do
+        let tagNames = intercalate "\n" $
+                sort $
+                unique $
+                fmap (\(_, _, _, _, tags, _) -> tags) frames >>= id -- yikes
+        if length tagNames == 0 then
+            pure $ Success "no tags yet!"
+        else
+            pure $ Success tagNames
 
 ---- Frames
 runCommand CommandState{cmd=Args.Frames, frames=frames} = do

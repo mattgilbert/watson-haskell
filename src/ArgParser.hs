@@ -10,8 +10,8 @@ data Command
     | Restart
     | Stop (Maybe String)
     | Cancel
-
-    | Projects -- display list of projects
+    | Projects
+    | Tags
     | Frames
     | Report 
         (Maybe ReportDateRange)
@@ -75,6 +75,7 @@ commandCommandLineArgs =
         <> stopCommand 
         <> cancelCommand 
         <> projectsCommand
+        <> tagsCommand
         <> framesCommand
         <> reportCommand
     )
@@ -112,6 +113,10 @@ cancelCommand =
 projectsCommand :: Mod CommandFields Command
 projectsCommand =
     command "projects" (info (pure Projects) (progDesc "list of all projects"))
+
+tagsCommand :: Mod CommandFields Command
+tagsCommand =
+    command "tags" (info (pure Tags) (progDesc "list of all tags"))
 
 framesCommand :: Mod CommandFields Command
 framesCommand =
