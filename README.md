@@ -13,22 +13,14 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 | stop | merge |
 | frames | remove |
 | restart | restart -S/-s, index, frame id |
-| tags | |
-| | sync |
+| tags | sync |
 
 Also, config isn't read, so no config options are currently respected.
 
 ### Todo
-- tags command
-- restart command
 - report
   - output type: json, csv
   - limit to project name
   - limit to specific tags
-- refactor/improve
-  - parseWatsonTags
-  - move aeson instances to separate file
-  - change UUID to UUID' and get rid of silly GUID prefix
-  - tags: State uses Maybe [], frame uses []... get these consistent
 - create frames file if it doesn't exist
 - improved error handling: e.g. corrupted frames/state
