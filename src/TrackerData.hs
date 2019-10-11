@@ -76,6 +76,28 @@ loadFrames = do
 addFrame :: Frames -> FrameRecord -> IO()
 addFrame frames newFrame = do
     let newFrames = frames ++ [newFrame]
+    saveFrames newFrames
+
+removeFrame :: (FrameRecord -> IO(Bool)) -> Frames -> String -> IO (Maybe Bool)
+removeFrame verify frames idToRemove = do
+    let idlen = length idToRemove
+    let (firstHalf, secondHalf) = 
+                break (\f -> UUID.partialStringMatch idToRemove (frameId f)) frames
+
+    if length secondHalf == 0 then
+        pure $ Just False
+    else do
+        let frameToRemove:remainder = secondHalf
+        shouldRemove <- verify frameToRemove
+        if shouldRemove then do
+            let newFrames = firstHalf ++ remainder
+            saveFrames newFrames
+            pure $ Just True
+        else
+            pure $ Nothing
+
+saveFrames :: Frames -> IO ()
+saveFrames newFrames = do
     framesFileName <- getFramesFile <$> getHomeDirectory
     BSL.writeFile framesFileName (encode newFrames)
     

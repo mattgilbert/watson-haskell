@@ -5,11 +5,15 @@ module UUID where
 import Prelude hiding (take, drop)
 import qualified Data.UUID as UUID_
 import qualified Data.UUID.V1 as UUIDv1 (nextUUID)
+import qualified Data.List as List
 import Data.Text as Text
 import qualified Data.List as List (take)
 import Data.ByteString (ByteString)
 
 newtype UUID' = MkUUID UUID_.UUID
+
+instance Show UUID' where
+    show (MkUUID u) = show u
 
 toString :: UUID' -> String
 toString (MkUUID u) =
@@ -46,3 +50,8 @@ nextUUID :: IO (Maybe UUID')
 nextUUID = do
     newId <- UUIDv1.nextUUID
     return $ MkUUID <$> newId
+
+partialStringMatch :: String -> UUID' -> Bool
+partialStringMatch str (MkUUID uuid) = 
+    (List.take (Prelude.length str) $ UUID_.toString uuid) == str
+

@@ -11,9 +11,10 @@ A partial reimplementation of [watson](http://tailordev.github.io/Watson/) in Ha
 | start | rename |
 | status | log |
 | stop | merge |
-| frames | remove |
+| remove | remove index, --force |
 | restart | restart -S/-s, index, frame id |
 | tags | sync |
+| frames | |
 
 Also, config isn't read, so no config options are currently respected.
 

@@ -10,6 +10,7 @@ data Command
     | Restart
     | Stop (Maybe String)
     | Cancel
+    | Remove String
     | Projects
     | Tags
     | Frames
@@ -74,6 +75,7 @@ commandCommandLineArgs =
         <> restartCommand
         <> stopCommand 
         <> cancelCommand 
+        <> removeCommand
         <> projectsCommand
         <> tagsCommand
         <> framesCommand
@@ -109,6 +111,14 @@ stopCommandArgs =
 cancelCommand :: Mod CommandFields Command
 cancelCommand = 
     command "cancel" (info (pure Cancel) (progDesc "cancel current project"))
+
+removeCommand :: Mod CommandFields Command
+removeCommand =
+    command "remove" (info (removeCommandArgs) (progDesc "remove a frame"))
+
+removeCommandArgs :: Parser Command
+removeCommandArgs =
+    Remove <$> (strArgument (metavar "frame" <> help "frame ID or index offset"))
 
 projectsCommand :: Mod CommandFields Command
 projectsCommand =

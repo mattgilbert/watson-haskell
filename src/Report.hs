@@ -7,7 +7,7 @@ import Text.Printf
 import Data.Maybe
 import Data.List
 import Data.Time.LocalTime
-import Data.Time.Format
+import Data.Time.Format as DTF
 
 import TimeTracker
 import TimeUtil
@@ -33,7 +33,7 @@ format ReportResult{dateRange=DateRange dateStart dateEnd, summaries=summaries} 
         header = printf "Report period: %s to %s" (fmtDate dateStart) (fmtDate dateEnd)
         projects = fmap fmtProject summaries
         fmtProject (name, seconds) = intercalate "\t" [name, (humanDuration seconds)]
-        fmtDate = formatTime defaultTimeLocale (dateFmt defaultTimeLocale)
+        fmtDate = DTF.formatTime defaultTimeLocale (dateFmt defaultTimeLocale)
     
 
 generate :: ReportCriteria -> ZonedTime -> State -> Frames -> ReportResult

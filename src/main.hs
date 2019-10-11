@@ -11,11 +11,10 @@ import Data.List
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
-import Data.Time.Format
 import qualified Data.Time.Calendar as Cal
 
 import UUID
-import TimeUtil
+import TimeUtil as TU
 import TimeTracker
 import TrackerData
 import qualified ArgParser as Args
@@ -94,7 +93,33 @@ runCommand CommandState{cmd=Args.Cancel, state=(Tracking proj _ _)} = do
     clearState
     pure $ Success ("cancelled tracking project" ++ proj)
 
----- Projects
+-- Remove
+runCommand CommandState{cmd=Args.Remove frameId, frames=frames, curTime=curTime} = do
+    success <- removeFrame userVerify frames frameId
+    case success of
+        Nothing -> pure $ Success ""
+        Just True -> pure $ Success "frame removed"
+        Just False -> pure $ Failure "unknown frame"
+
+    where
+        userVerify :: FrameRecord -> IO(Bool)
+        userVerify (start, stop, projName, _, tags, _) = do
+            let msg = intercalate " " $ filter (not . null) $ 
+                    [ projName
+                    , if length tags == 0 then [] else showTags tags
+                    , "from"
+                    , TU.formatTime curTime start
+                    , "to"
+                    , TU.formatTime curTime stop
+                    ]
+            putStr $ "You are about to remove frame " ++ msg ++ ", continue? [y/N] "
+            answer <- getLine
+            pure $ case answer of
+                "y" -> True
+                "Y" -> True
+                _ -> False
+
+-- Projects
 runCommand CommandState{cmd=Args.Projects, frames=frames} = do
     if length frames == 0 then
         pure $ Success "no projects yet!"

@@ -4,6 +4,7 @@ module TimeUtil where
 import Control.Monad
 import Data.Maybe
 import qualified Data.Time.Calendar as Cal
+import qualified Data.Time.Format as DTF
 import Data.Time
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
@@ -12,6 +13,12 @@ import Data.Time.LocalTime
 timeFormat = "%H:%M"
 
 data DateRange = DateRange ZonedTime ZonedTime
+
+formatTime :: ZonedTime -> Int -> String
+formatTime curTime t =
+    DTF.formatTime defaultTimeLocale timeFormat zonedTime
+    where
+        zonedTime = posixTimeToZoned (zonedTimeZone curTime) (realToFrac t)
 
 parseRangeToZonedTime :: Maybe String -> Maybe String -> DateRange
 parseRangeToZonedTime from to =
