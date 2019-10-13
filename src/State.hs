@@ -38,9 +38,9 @@ getStateFile homeDir = joinPath [getDataPath homeDir, "state"]
 
 stateToFrame :: ZonedTime -> Maybe UUID.UUID' -> State -> FrameRecord
 stateToFrame curTime newId Tracking{tags=tags, start=start, project=project} =
-    (start, round stopTime, project, fromMaybe UUID.nil newId, justTags, round stopTime)
+    (start, stopTime, project, fromMaybe UUID.nil newId, justTags, stopTime)
     where
-        stopTime = zonedTimeToPOSIX curTime
+        stopTime = zonedTimeToUnix curTime
         justTags = fromMaybe [] (tags)
 
 loadState :: IO (State)

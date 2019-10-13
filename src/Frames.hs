@@ -62,9 +62,9 @@ frameStartTime :: FrameRecord -> POSIXTime
 frameStartTime (startTime, _, _, _, _, _) =
     realToFrac startTime
 
-frameStopTime :: FrameRecord -> POSIXTime
+frameStopTime :: FrameRecord -> Int
 frameStopTime (_, stopTime, _, _, _, _) =
-    realToFrac stopTime
+    stopTime
 
 frameDuration :: FrameRecord -> Int
 frameDuration (startTime, stopTime, _, _, _, _) =

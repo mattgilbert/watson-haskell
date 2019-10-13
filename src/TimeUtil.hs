@@ -28,9 +28,13 @@ parseToZonedTime :: String -> ZonedTime
 parseToZonedTime timeStr =
     parseTimeOrError True defaultTimeLocale "%0Y-%m-%d" timeStr :: ZonedTime
 
-zonedTimeToPOSIX :: ZonedTime -> POSIXTime
-zonedTimeToPOSIX zt =
-    utcTimeToPOSIXSeconds $ zonedTimeToUTC zt
+zonedTimeToUnix :: ZonedTime -> Int
+zonedTimeToUnix zt =
+    round $ utcTimeToPOSIXSeconds $ zonedTimeToUTC zt
+
+unixToZonedTime :: ZonedTime -> Int -> ZonedTime
+unixToZonedTime curTime intTime =
+    utcToZonedTime (zonedTimeZone curTime) $ posixSecondsToUTCTime $ realToFrac intTime
 
 posixTimeToZoned :: TimeZone -> POSIXTime -> ZonedTime
 posixTimeToZoned tz pt =

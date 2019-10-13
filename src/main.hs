@@ -60,7 +60,7 @@ runCommand CommandState{cmd=Args.Status, state=NotTracking} =
 runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime maybeTags), curTime=curTime} = do
     let tz = zonedTimeZone curTime
     let localStartTime = posixTimeToZoned tz (realToFrac startTime)
-    let diff = (round $ realToFrac $ zonedTimeToPOSIX curTime) - (startTime)
+    let diff = (zonedTimeToUnix curTime) - (startTime)
     let statusText = intercalate " " $ filter (not . null) 
             [ "project"
             , proj
@@ -229,8 +229,8 @@ stopTracking curTime stopTimeStr state clearState addFrame = do
     addFrame newFrame
     clearState
 
-    let friendlyTime = utcToZonedTime (zonedTimeZone curTime) $ posixSecondsToUTCTime stopTime
-    let resultMsg = ("stopped tracking " ++ project state ++ " at " ++ (show friendlyTime))
+    let stopTime = unixToZonedTime curTime (frameStopTime newFrame)
+    let resultMsg = ("stopped tracking " ++ project state ++ " at " ++ (show stopTime))
     pure $ Success resultMsg
 
 showTags :: [String] -> String

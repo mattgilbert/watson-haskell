@@ -59,8 +59,8 @@ generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurr
         determineDateRange (Just (dr)) = dr
 
         frameWithinRange (DateRange from to) frame =
-            (frameStopTime frame) >= (zonedTimeToPOSIX from) &&
-            (frameStopTime frame) <= (zonedTimeToPOSIX to)
+            (frameStopTime frame) >= (zonedTimeToUnix from) &&
+            (frameStopTime frame) <= (zonedTimeToUnix to)
 
         sameProject p1 p2 = 
             frameProject p1 == frameProject p2
