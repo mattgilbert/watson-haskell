@@ -12,11 +12,14 @@ import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.Clock.POSIX
 import qualified Data.Time.Calendar as Cal
+import qualified Util
+import qualified Data.ByteString.Lazy as BSL (fromStrict)
 
 import UUID
 import TimeUtil as TU
-import TimeTracker
-import TrackerData
+import Base
+import Frames
+import State
 import qualified ArgParser as Args
 import qualified Report as Report 
 
@@ -119,6 +122,26 @@ runCommand CommandState{cmd=Args.Remove frameId, frames=frames, curTime=curTime}
                 "Y" -> True
                 _ -> False
 
+-- Edit
+-- TODO: fix maybe/case..of nesting hell
+runCommand CommandState{cmd=Args.Edit frameId, frames=frames, curTime=curTime} = do
+    let frame = findFrame frameId frames
+    case frame of
+        Nothing -> pure $ Success "unknown frame"
+        Just f -> editFrame f
+
+    where
+        editFrame oldFrame = do
+            let frameJson = frameToJson curTime oldFrame
+            result <- Util.openEditor frameJson
+            case result of
+                Nothing -> 
+                    pure $ Success "no changes made"
+                Just result -> do
+                    let newFrameJson = BSL.fromStrict result
+                    updateFrame oldFrame newFrameJson curTime frames
+                    pure $ Success "frame updated"
+
 -- Projects
 runCommand CommandState{cmd=Args.Projects, frames=frames} = do
     if length frames == 0 then
@@ -127,7 +150,7 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
         let projNames = intercalate "\n" $
                 sort $
                 unique $
-                fmap (\(_, _, proj, _, _, _) -> proj) frames
+                fmap frameProject frames
         pure $ Success projNames
 
 ---- Tags
@@ -138,7 +161,7 @@ runCommand CommandState{cmd=Args.Tags, frames=frames} = do
         let tagNames = intercalate "\n" $
                 sort $
                 unique $
-                fmap (\(_, _, _, _, tags, _) -> tags) frames >>= id -- yikes
+                fmap frameTags frames >>= Prelude.id -- yikes
         if length tagNames == 0 then
             pure $ Success "no tags yet!"
         else
@@ -166,10 +189,8 @@ runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTi
 
 startTracking :: (State -> IO()) -> ProjectName -> [String] -> ZonedTime -> Maybe String -> IO (CommandResult)
 startTracking addState projName tags curTime startTimeStr = do
-    let unixTime = zonedTimeToPOSIX curTime
-
-    let startTime = fmap (getTimeWithin24Hrs' curTime) startTimeStr
-    let startTimePOSIX = (fmap (zonedTimeToPOSIX) startTime) 
+    let startTimeArg = (getTimeWithin24Hrs' curTime) <$> startTimeStr
+    let startTime = fromMaybe (truncateSeconds curTime) startTimeArg
 
     let maybeTags = if length tags == 0 then Nothing 
                     else Just tags
@@ -177,7 +198,7 @@ startTracking addState projName tags curTime startTimeStr = do
     addState (
         Tracking 
             { project = projName
-            , start = round $ fromMaybe unixTime startTimePOSIX
+            , start = zonedTimeToUnix startTime
             , tags = maybeTags }
         )
     let msg = intercalate " " $ filter (not . null) $ 
@@ -185,7 +206,7 @@ startTracking addState projName tags curTime startTimeStr = do
             , projName
             , fromMaybe "" $ showTags <$> maybeTags
             , "at"
-            , show curTime
+            , show startTime
             ]
     pure $ Success msg
 
@@ -201,8 +222,6 @@ restartTracking addState frames curTime = do
 
 stopTracking :: ZonedTime -> Maybe String -> State -> IO() -> (FrameRecord -> IO()) -> IO (CommandResult)
 stopTracking curTime stopTimeStr state clearState addFrame = do
-    let stopTime = zonedTimeToPOSIX $ fromMaybe curTime $ fmap (getTimeWithin24Hrs' curTime) stopTimeStr
-
     maybeNewId <- UUID.nextUUID
     let newId = fromJust maybeNewId
 

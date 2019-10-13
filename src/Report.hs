@@ -9,9 +9,9 @@ import Data.List
 import Data.Time.LocalTime
 import Data.Time.Format as DTF
 
-import TimeTracker
 import TimeUtil
-import TrackerData
+import Frames
+import State
 
 data ReportCriteria = ReportCriteria {
     dateStart :: ZonedTime,

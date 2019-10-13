@@ -19,12 +19,13 @@ extra-source-files:  CHANGELOG.md
 
 executable watson-haskell
   main-is:             main.hs
-  other-modules:       ArgParser, TimeTracker, TrackerData, TimeUtil, Report, UUID
+  other-modules:       Base, Frames, State, Report, ArgParser, Util, TimeUtil, UUID
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13
                      , directory
                      , uuid
                      , aeson
+                     , aeson-pretty
                      , bytestring
                      , utf8-string
                      , optparse-applicative
@@ -34,5 +35,8 @@ executable watson-haskell
                      , filepath
                      , unix
                      , text
+                     , editor-open
+                     , process
+                     , temporary
   hs-source-dirs:      src
   default-language:    Haskell2010

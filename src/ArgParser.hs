@@ -2,7 +2,7 @@ module ArgParser (CommandLineArgs(..), Command(..), ReportDateRange(..), getArgs
 
 import Data.List
 import Options.Applicative
-import TimeTracker
+import Base
 
 data Command 
     = Status
@@ -11,6 +11,7 @@ data Command
     | Stop (Maybe String)
     | Cancel
     | Remove String
+    | Edit String
     | Projects
     | Tags
     | Frames
@@ -76,6 +77,7 @@ commandCommandLineArgs =
         <> stopCommand 
         <> cancelCommand 
         <> removeCommand
+        <> editCommand
         <> projectsCommand
         <> tagsCommand
         <> framesCommand
@@ -119,6 +121,14 @@ removeCommand =
 removeCommandArgs :: Parser Command
 removeCommandArgs =
     Remove <$> (strArgument (metavar "frame" <> help "frame ID or index offset"))
+
+editCommand :: Mod CommandFields Command
+editCommand =
+    command "edit" (info (editCommandArgs) (progDesc "edit a frame"))
+
+editCommandArgs :: Parser Command
+editCommandArgs =
+    Edit <$> (strArgument (metavar "frame" <> help "frame ID or index offset"))
 
 projectsCommand :: Mod CommandFields Command
 projectsCommand =
