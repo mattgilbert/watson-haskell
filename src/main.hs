@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DisambiguateRecordFields #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 module Main where
 
 import System.IO
@@ -25,7 +22,7 @@ import qualified Report as Report
 
 data CommandResult = Success String | Failure String
 
-data CommandState = CommandState
+data ExecutionState = ExecutionState
     { cmd :: Args.Command
     , state :: State
     , frames :: Frames
@@ -33,12 +30,26 @@ data CommandState = CommandState
     }
 
 main = do
-    state <- loadState
-    frames <- loadFrames
+    tryState <- loadState
+    state <- case tryState of
+        Left msg -> do
+            print $ "Failed to load current project: " ++ msg
+            exitFailure
+        Right s -> do
+            pure s
+
+    tryFrames <- loadFrames
+    frames <- case tryFrames of
+        Left msg -> do
+            print $ "Failed to load frames: " ++ msg
+            exitFailure
+        Right f -> do
+            pure f
+    
     cmd <- Args.getArgs
     curTime <- getZonedTime
 
-    let cmdState = CommandState cmd state frames curTime
+    let cmdState = ExecutionState cmd state frames curTime
 
     -- using seq to force evaluation to fix lazy IO problems, blech
     result <- state `seq` frames `seq` runCommand cmdState
@@ -52,12 +63,12 @@ main = do
             exitFailure
 
 
-runCommand :: CommandState -> IO (CommandResult)
+runCommand :: ExecutionState -> IO (CommandResult)
 
 -- Status
-runCommand CommandState{cmd=Args.Status, state=NotTracking} =
+runCommand ExecutionState{cmd=Args.Status, state=NotTracking} =
     pure $ Success "not currently tracking a project"
-runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime maybeTags), curTime=curTime} = do
+runCommand ExecutionState{cmd=Args.Status, state=(Tracking proj startTime maybeTags), curTime} = do
     let tz = zonedTimeZone curTime
     let localStartTime = posixTimeToZoned tz (realToFrac startTime)
     let diff = (zonedTimeToUnix curTime) - (startTime)
@@ -72,32 +83,32 @@ runCommand CommandState{cmd=Args.Status, state=(Tracking proj startTime maybeTag
     pure $ Success statusText
 
 -- Start
-runCommand CommandState{cmd=(Args.Start at p tags), state=(Tracking proj _ _)} = 
+runCommand ExecutionState{cmd=(Args.Start at p tags), state=(Tracking proj _ _)} = 
     pure $ Failure ("project " ++ proj ++ " already started!")
-runCommand CommandState{cmd=(Args.Start at p tags), state=NotTracking, curTime=curTime} =
+runCommand ExecutionState{cmd=(Args.Start at p tags), state=NotTracking, curTime} =
     startTracking saveState p tags curTime at
 
 -- Restart
-runCommand CommandState{cmd=(Args.Restart), state=(Tracking proj _ _)} = 
+runCommand ExecutionState{cmd=(Args.Restart), state=(Tracking proj _ _)} = 
     pure $ Failure ("project " ++ proj ++ " already started!")
-runCommand CommandState{cmd=(Args.Restart), frames=frames, state=NotTracking, curTime=curTime} =
+runCommand ExecutionState{cmd=(Args.Restart), frames, state=NotTracking, curTime} =
     restartTracking saveState frames curTime 
 
 -- Stop
-runCommand CommandState{cmd=(Args.Stop at), state=NotTracking} =
+runCommand ExecutionState{cmd=(Args.Stop at), state=NotTracking} =
     pure $ Failure "no project started!"
-runCommand CommandState{cmd=(Args.Stop at), state=state, frames=frames, curTime=curTime} = 
+runCommand ExecutionState{cmd=(Args.Stop at), state, frames, curTime} = 
     stopTracking curTime at state clearState (addFrame frames)
 
 -- Cancel
-runCommand CommandState{cmd=Args.Cancel, state=NotTracking} =
+runCommand ExecutionState{cmd=Args.Cancel, state=NotTracking} =
     pure $ Failure "no project started!"
-runCommand CommandState{cmd=Args.Cancel, state=(Tracking proj _ _)} = do
+runCommand ExecutionState{cmd=Args.Cancel, state=(Tracking proj _ _)} = do
     clearState
     pure $ Success ("cancelled tracking project" ++ proj)
 
 -- Remove
-runCommand CommandState{cmd=Args.Remove frameId, frames=frames, curTime=curTime} = do
+runCommand ExecutionState{cmd=Args.Remove frameId, frames, curTime} = do
     success <- removeFrame userVerify frames frameId
     case success of
         Nothing -> pure $ Success ""
@@ -124,7 +135,7 @@ runCommand CommandState{cmd=Args.Remove frameId, frames=frames, curTime=curTime}
 
 -- Edit
 -- TODO: fix maybe/case..of nesting hell
-runCommand CommandState{cmd=Args.Edit frameId, frames=frames, curTime=curTime} = do
+runCommand ExecutionState{cmd=Args.Edit frameId, frames, curTime} = do
     let frame = findFrame frameId frames
     case frame of
         Nothing -> pure $ Success "unknown frame"
@@ -143,7 +154,7 @@ runCommand CommandState{cmd=Args.Edit frameId, frames=frames, curTime=curTime} =
                     pure $ Success "frame updated"
 
 -- Projects
-runCommand CommandState{cmd=Args.Projects, frames=frames} = do
+runCommand ExecutionState{cmd=Args.Projects, frames} = do
     if length frames == 0 then
         pure $ Success "no projects yet!"
     else do
@@ -154,7 +165,7 @@ runCommand CommandState{cmd=Args.Projects, frames=frames} = do
         pure $ Success projNames
 
 ---- Tags
-runCommand CommandState{cmd=Args.Tags, frames=frames} = do
+runCommand ExecutionState{cmd=Args.Tags, frames} = do
     if length frames == 0 then
         pure $ Success "no projects yet!"
     else do
@@ -168,11 +179,11 @@ runCommand CommandState{cmd=Args.Tags, frames=frames} = do
             pure $ Success tagNames
 
 ---- Frames
-runCommand CommandState{cmd=Args.Frames, frames=frames} = do
+runCommand ExecutionState{cmd=Args.Frames, frames} = do
     pure $ Success $ intercalate "\n" $ toString . frameId <$> frames
 
 ---- Report
-runCommand CommandState{cmd=(Args.Report range useCurrent), frames=frames, curTime=curTime, state=state} = do
+runCommand ExecutionState{cmd=(Args.Report range useCurrent), frames, curTime, state} = do
     let (from, to) = getRange range
     let criteria = Report.ReportCriteria from to (fromMaybe False useCurrent)
     let result = Report.generate criteria curTime state frames
@@ -195,12 +206,8 @@ startTracking addState projName tags curTime startTimeStr = do
     let maybeTags = if length tags == 0 then Nothing 
                     else Just tags
 
-    addState (
-        Tracking 
-            { project = projName
-            , start = zonedTimeToUnix startTime
-            , tags = maybeTags }
-        )
+    addState $ Tracking projName (zonedTimeToUnix startTime) maybeTags
+
     let msg = intercalate " " $ filter (not . null) $ 
             [ "started project"
             , projName

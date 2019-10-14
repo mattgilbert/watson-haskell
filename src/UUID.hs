@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module UUID where
 
 import Prelude hiding (take, drop)

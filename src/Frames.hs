@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-
 module Frames where
 
 import Control.Exception
@@ -8,8 +6,8 @@ import Prelude hiding (catch, id)
 
 import Data.Maybe
 import Data.List
+import Data.Bifunctor as Bifunctor
 import Data.Time.LocalTime
-import Data.Time.Clock.POSIX
 import System.Directory
 import System.Info
 import System.FilePath
@@ -47,51 +45,39 @@ initFrames :: [FrameRecord]
 initFrames = []
 
 frameId :: FrameRecord -> UUID'
-frameId (_, _, _, id, _, _) =
-    id
+frameId (_, _, _, id, _, _) = id
 
 frameProject :: FrameRecord -> String
-frameProject (_, _, projName, _, _, _) =
-    projName
+frameProject (_, _, projName, _, _, _) = projName
 
 frameTags :: FrameRecord -> [TagName]
-frameTags (_, _, _, _, tags, _) =
-    tags
+frameTags (_, _, _, _, tags, _) = tags
 
-frameStartTime :: FrameRecord -> POSIXTime
-frameStartTime (startTime, _, _, _, _, _) =
-    realToFrac startTime
+frameStartTime :: FrameRecord -> Int
+frameStartTime (startTime, _, _, _, _, _) = startTime
 
 frameStopTime :: FrameRecord -> Int
-frameStopTime (_, stopTime, _, _, _, _) =
-    stopTime
+frameStopTime (_, stopTime, _, _, _, _) = stopTime
 
 frameDuration :: FrameRecord -> Int
-frameDuration (startTime, stopTime, _, _, _, _) =
-    stopTime - startTime
-    --diffUTCTime (toUtc stopTime) (toUtc startTime)
-    --where 
-    --    toUtc i = posixSecondsToUTCTime $ realToFrac i
+frameDuration (startTime, stopTime, _, _, _, _) = stopTime - startTime
 
 getFramesFile homeDir = joinPath [getDataPath homeDir, "frames"]
 
-loadFrames :: IO (Frames)
+loadFrames :: IO (Either String Frames)
 loadFrames = do
     homeDir <- getHomeDirectory
     let framesFileName = getFramesFile homeDir
     fileExists <- doesFileExist framesFileName
     if not fileExists then do
-        return []
+        pure $ Right [] 
     else do
         framesRaw <- BSL.readFile framesFileName
-        -- TODO: create frame file if it doesn't exist
+
         let lines = BC.split ('\n') framesRaw
         let withoutNewlines = BC.concat lines
         let frames = eitherDecode' withoutNewlines
-        let result = case frames of
-                    Left s -> error $ "Error:"++s
-                    Right f -> f
-        return result
+        pure $ frames
 
 findFrame :: String -> Frames -> Maybe FrameRecord
 findFrame idOrIndex frames =
@@ -111,7 +97,7 @@ instance FromJSON EditableFrame
 instance ToJSON EditableFrame 
 
 frameToJson :: ZonedTime -> FrameRecord -> BS.ByteString
-frameToJson curTime (start, stop, projName, id, tags, lastupdate) = 
+frameToJson curTime (start, stop, projName, _, tags, _) = 
     BSL.toStrict $ encodePretty frameJson
     where
       localStart = zonedTimeToLocalTime $ unixToZonedTime curTime start
@@ -131,7 +117,7 @@ jsonToFrame json origFrame curTime =
         createFrame edited = 
             (unixStart, unixStop, projectName, frameId origFrame, tags, zonedTimeToUnix curTime)
             where
-                EditableFrame {projectName=projectName, startTime=localStart, stopTime=localStop, tags=tags} = edited
+                EditableFrame {projectName, startTime=localStart, stopTime=localStop, tags} = edited
                 unixStart = zonedTimeToUnix $ ZonedTime localStart (zonedTimeZone curTime)
                 unixStop = zonedTimeToUnix $ ZonedTime localStop (zonedTimeZone curTime)
 

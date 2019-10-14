@@ -1,13 +1,9 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DisambiguateRecordFields #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 module Report where
 
 import Text.Printf
 import Data.Maybe
 import Data.List
 import Data.Time.LocalTime
-import Data.Time.Format as DTF
 
 import TimeUtil
 import Frames
@@ -26,37 +22,31 @@ data ReportResult = ReportResult {
 
 
 format :: ReportResult -> String
-format ReportResult{dateRange=DateRange dateStart dateEnd, summaries=summaries} =
+format ReportResult{dateRange=DateRange dateStart dateEnd, summaries} =
     intercalate "\n" (header:"":projects)
 
     where 
-        header = printf "Report period: %s to %s" (fmtDate dateStart) (fmtDate dateEnd)
-        projects = fmap fmtProject summaries
-        fmtProject (name, seconds) = intercalate "\t" [name, (humanDuration seconds)]
-        fmtDate = DTF.formatTime defaultTimeLocale (dateFmt defaultTimeLocale)
+        header = printf "Report period: %s to %s" (formatDate dateStart) (formatDate dateEnd)
+        projects = fmap formatProject summaries
+        
+        formatProject (name, seconds) = intercalate "\t" [name, (humanDuration seconds)]
     
 
 generate :: ReportCriteria -> ZonedTime -> State -> Frames -> ReportResult
-generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurrent} curTime state frames =
+generate ReportCriteria{dateStart, dateEnd, useCurrent} curTime state frames =
     ReportResult range times
 
     where
+        times = fmap asSummaries $ 
+            groupBy sameProject $ 
+            filter (frameWithinRange range) allFrames
+
         allFrames = if useCurrent then
                         (stateToFrame curTime Nothing state):frames
                     else
                         frames
                         
-        times = fmap asSummaries $ 
-            groupBy sameProject $ 
-            filter (frameWithinRange range) allFrames
-
         range = DateRange dateStart dateEnd
-
-        ZonedTime{zonedTimeToLocalTime=curLocalTime, zonedTimeZone=curTimeZone} = curTime
-        midnight = TimeOfDay 0 0 0
-        midnightToday = ZonedTime (LocalTime (localDay curLocalTime) midnight) curTimeZone
-        determineDateRange Nothing = DateRange (addDays (-7) midnightToday) (addDays 1 midnightToday)
-        determineDateRange (Just (dr)) = dr
 
         frameWithinRange (DateRange from to) frame =
             (frameStopTime frame) >= (zonedTimeToUnix from) &&
@@ -64,5 +54,6 @@ generate ReportCriteria{dateStart=dateStart, dateEnd=dateEnd, useCurrent=useCurr
 
         sameProject p1 p2 = 
             frameProject p1 == frameProject p2
+
         asSummaries frames =
             ((frameProject $ head frames), sum $ fmap frameDuration frames)

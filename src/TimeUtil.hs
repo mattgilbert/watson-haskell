@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module TimeUtil where
 
 import Control.Monad
@@ -19,6 +18,10 @@ formatTime curTime t =
     DTF.formatTime defaultTimeLocale timeFormat zonedTime
     where
         zonedTime = posixTimeToZoned (zonedTimeZone curTime) (realToFrac t)
+
+formatDate :: ZonedTime -> String
+formatDate t =
+    DTF.formatTime defaultTimeLocale (dateFmt defaultTimeLocale) t
 
 parseRangeToZonedTime :: Maybe String -> Maybe String -> DateRange
 parseRangeToZonedTime from to =

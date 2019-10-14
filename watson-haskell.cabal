@@ -20,7 +20,7 @@ extra-source-files:  CHANGELOG.md
 executable watson-haskell
   main-is:             main.hs
   other-modules:       Base, Frames, State, Report, ArgParser, Util, TimeUtil, UUID
-  -- other-extensions:
+  extensions:          OverloadedStrings, NamedFieldPuns
   build-depends:       base >=4.12 && <4.13
                      , directory
                      , uuid

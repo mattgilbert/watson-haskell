@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module State where
@@ -13,7 +12,7 @@ import System.Info
 import System.FilePath
 import System.Directory
 import GHC.Generics
-import Data.Aeson (withText, Value(..), eitherDecode', encode, decode, ToJSON(..), FromJSON(..))
+import Data.Aeson (encode, eitherDecode', ToJSON(..), FromJSON(..))
 import qualified Data.ByteString.Lazy as BSL (writeFile, readFile)
 
 import qualified UUID as UUID
@@ -28,9 +27,6 @@ data State = NotTracking | Tracking {
     , tags :: Maybe [TagName]
     } deriving (Generic, Show)
         
-initState :: State
-initState = NotTracking
-
 instance FromJSON State 
 instance ToJSON State 
 
@@ -43,16 +39,16 @@ stateToFrame curTime newId Tracking{tags=tags, start=start, project=project} =
         stopTime = zonedTimeToUnix curTime
         justTags = fromMaybe [] (tags)
 
-loadState :: IO (State)
+loadState :: IO (Either String State)
 loadState = do
     stateFileName <- getStateFile <$> getHomeDirectory
     fileExists <- doesFileExist stateFileName
     if not fileExists then do
-        return NotTracking
+        pure $ Right NotTracking
     else do
         stateRaw <- BSL.readFile stateFileName
-        let state = decode stateRaw :: Maybe State
-        return $ fromMaybe NotTracking state
+        let state = eitherDecode' stateRaw 
+        pure $ state
 
 saveState :: State -> IO ()
 saveState state = do
@@ -63,7 +59,8 @@ clearState :: IO ()
 clearState = do
     homeDir <- getHomeDirectory
     removeFile (getStateFile homeDir) `catch` handleExists
-      where handleExists e
-              | isDoesNotExistError e = return ()
-              | otherwise = throwIO e
+
+    where handleExists e
+           | isDoesNotExistError e = return ()
+           | otherwise = throwIO e
 
